@@ -200,11 +200,7 @@ class Minefield: NSView {
         contentAnimation.duration = duration * 1.25
         
         layer!.add(contentAnimation, forKey: nil)
-        
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        CATransaction.commit()
-        
+
         window!.setFrame(newWindowFrame, display: false, animate: true)
         isAnimatingResizing = true
         
@@ -249,7 +245,7 @@ class Minefield: NSView {
                     mound.showMine(animates: true, duration: 0.5)
                 }
             }
-            return DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1, execute: callback)
+            return DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5, execute: callback)
         }
         
         let animationWindow = AnimationWindow(frame: window!.frame, viewType: AnimationView, didClose: callback)

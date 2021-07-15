@@ -17,6 +17,7 @@
 		DE62FA4E2666807E00C17CD8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE62FA4D2666807E00C17CD8 /* Assets.xcassets */; };
 		DE62FA5A2666818D00C17CD8 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE62FA592666818D00C17CD8 /* main.swift */; };
 		DE7FE1122678C2D50002356A /* PreferenceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE7FE1112678C2D50002356A /* PreferenceSheet.swift */; };
+		DE9D629A26A0521E008C6E94 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DE9D629C26A0521E008C6E94 /* InfoPlist.strings */; };
 		DECDCCEA2667479000519DB1 /* Minefield.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECDCCE92667479000519DB1 /* Minefield.swift */; };
 /* End PBXBuildFile section */
 
@@ -36,6 +37,9 @@
 		DE62FA532666807E00C17CD8 /* Minesweeper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Minesweeper.entitlements; sourceTree = "<group>"; };
 		DE62FA592666818D00C17CD8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		DE7FE1112678C2D50002356A /* PreferenceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceSheet.swift; sourceTree = "<group>"; wrapsLines = 0; };
+		DE9D629B26A0521E008C6E94 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		DE9D629D26A05222008C6E94 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		DE9D629E26A05223008C6E94 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		DECDCCE92667479000519DB1 /* Minefield.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Minefield.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -79,9 +83,10 @@
 				DE496EF62671D0FD000FDABC /* Animation.swift */,
 				DE0603472673247C00E23129 /* SmileyButton.swift */,
 				DE7FE1112678C2D50002356A /* PreferenceSheet.swift */,
-				DE351541267C81B70090A03B /* Localizable.strings */,
 				DE62FA4D2666807E00C17CD8 /* Assets.xcassets */,
 				DE351548267CF2540090A03B /* Info.plist */,
+				DE9D629C26A0521E008C6E94 /* InfoPlist.strings */,
+				DE351541267C81B70090A03B /* Localizable.strings */,
 				DE62FA532666807E00C17CD8 /* Minesweeper.entitlements */,
 			);
 			path = Minesweeper;
@@ -148,6 +153,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE62FA4E2666807E00C17CD8 /* Assets.xcassets in Resources */,
+				DE9D629A26A0521E008C6E94 /* InfoPlist.strings in Resources */,
 				DE35153F267C81B70090A03B /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -182,6 +188,16 @@
 				DE221035269C812900EF399F /* zh-Hant */,
 			);
 			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		DE9D629C26A0521E008C6E94 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DE9D629B26A0521E008C6E94 /* en */,
+				DE9D629D26A05222008C6E94 /* zh-Hans */,
+				DE9D629E26A05223008C6E94 /* zh-Hant */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -312,6 +328,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -331,6 +348,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -38,15 +38,15 @@ class Mound: NSView {
         }
     }
     
-    static func getHintColors() -> [NSColor] {
-        let brightness = _accentColor.brightnessComponent
-        if abs(_accentColor.redComponent - brightness) < 0.05,
-           abs(_accentColor.blueComponent - brightness) < 0.05,
-           abs(_accentColor.greenComponent - brightness) < 0.05 {
+    static func getHintColors(ofAccent accentColor: NSColor) -> [NSColor] {
+        let brightness = accentColor.brightnessComponent
+        if abs(accentColor.redComponent - brightness) < 0.05,
+           abs(accentColor.blueComponent - brightness) < 0.05,
+           abs(accentColor.greenComponent - brightness) < 0.05 {
             return [coveredBackgroundColor, .systemBlue, .systemPurple, .systemGreen, .systemOrange, .systemYellow, .systemRed, .labelColor]
         }
         
-        let hue = _accentColor.hueComponent
+        let hue = accentColor.hueComponent
         if hue < 0.05 || hue > 0.95 { // red
             return [coveredBackgroundColor, .systemOrange, .systemBrown, .systemPurple, .systemYellow, .systemGreen, .systemBlue, .labelColor]
         } else if hue < 0.1 { // orange
@@ -67,7 +67,6 @@ class Mound: NSView {
     static let mineImage: NSImage = NSImage(named: "Mine")!
     static let exposedBezel: NSImage = NSImage(named: "MoundExposed")!
     static let coveredBezel: NSImage = NSImage(named: "MoundCovered")!
-    static let coveredBezelXI: NSImage = NSImage(named: "MoundCoveredXI")!
     static let pressedBezel: NSImage = NSImage(named: "MoundPressed")!
     static let certainFlagGlyph: NSImage = NSImage(named: "FlagCertain")!
     static let uncertainFlagGlyph: NSImage = NSImage(named: "FlagUncertain")!
@@ -83,26 +82,19 @@ class Mound: NSView {
     static var exposedBackgroundColor: NSColor {coveredBackgroundColor.withAlphaComponent(0.25)}
     
     private static var _accentColor: NSColor = .clear
-    private static var _hintColors: [NSColor] = []
     private static var _hintImages: [NSImage] = []
     
-    static var hintColors: [NSColor] {
-        let staticalized = coveredBackgroundColor.withAlphaComponent(1)
+    static var hintImages: [NSImage] {
+        let staticalized = NSColor(cgColor: NSColor.keyboardFocusIndicatorColor.cgColor)!
         if _accentColor != staticalized {
             _accentColor = staticalized
-            _hintColors = getHintColors()
-        }
-        return getHintColors()
-    }
-    
-    static var hintImages: [NSImage] {
-        if _accentColor != coveredBackgroundColor.withAlphaComponent(1) {
-            _accentColor = .clear
             _hintImages = []
+            let hintColors = getHintColors(ofAccent: _accentColor)
+            
             for hint in 1...8 {
-                let image = NSImage(named: "Hint\(hint)")!
+                let image = NSImage(named: "Hint\(hint)")!.copy() as! NSImage
                 image.lockFocus()
-                Self.hintColors[hint - 1].blended(withFraction: 0.25, of: .textColor)?.set()
+                hintColors[hint - 1].blended(withFraction: 0.25, of: .textColor)?.set()
                 NSRect(origin: .zero, size: image.size).fill(using: .sourceIn)
                 image.unlockFocus()
                 _hintImages.append(image)
@@ -139,23 +131,23 @@ class Mound: NSView {
     var mineOpacity: CGFloat = 1
     var flashes: Bool = false
     
-    func showMine(animates: Bool, flashes: Bool = false, duration: CGFloat = 0.75) {
+    func showMine(animates: Bool, flashes: Bool = false, duration: TimeInterval = 0.75) {
         if animates {
             self.flashes = flashes
             mineOpacity = 0
-            animateMineOpacity(speed: 1 / duration)
+            animateMineOpacity(duration: duration, startTime: Date().timeIntervalSince1970)
         } else if mineOpacity != 1 {
             mineOpacity = 1
         }
         showsMine = true
     }
     
-    func animateMineOpacity(speed: CGFloat) {
+    func animateMineOpacity(duration: TimeInterval, startTime: TimeInterval) {
         if mineOpacity < 1 {
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.02) {
-                self.mineOpacity += speed * 0.02
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.015) {
+                self.mineOpacity = CGFloat(((Date().timeIntervalSince1970 - startTime)) / duration)
                 self.setNeedsDisplay(self.bounds)
-                self.animateMineOpacity(speed: speed)
+                self.animateMineOpacity(duration: duration, startTime: startTime)
             }
         } else {
             mineOpacity = 1
@@ -213,9 +205,7 @@ class Mound: NSView {
     override func rightMouseDown(with event: NSEvent) {
         guard delegate?.moundCanAct(self) ?? true == true, case .covered(withFlag: let flag) = state else {return}
         
-        let nextFlag: Flag = flag != .uncertain ? flag != .none
-            ? .none : .certain : .uncertain
-        
+        let nextFlag = Flag(rawValue: flag.rawValue + 1) ?? Flag(rawValue: 0)!
         if delegate?.mound(self, shouldFlagAs: nextFlag) ?? true {
             state = .covered(withFlag: nextFlag)
         }
@@ -235,8 +225,8 @@ extension Mound {
             bounds.fill(using: .softLight)
             let bezel = isPressing ? Self.pressedBezel : Self.coveredBezel
             if #available(OSX 10.16, *) {
-                bezel.draw(in: bounds, from: .zero, operation: .plusDarker, fraction: 0.5)
-                bezel.draw(in: bounds, from: .zero, operation: .plusLighter, fraction: 0.4)
+                bezel.draw(in: bounds, from: .zero, operation: .softLight, fraction: 1)
+                bezel.draw(in: bounds, from: .zero, operation: .hardLight, fraction: 0.5)
             } else {
                 bezel.draw(in: bounds)
             }
@@ -280,100 +270,101 @@ extension Mound {
         }
     }
     
-    override var wantsUpdateLayer: Bool {wantsLayer}
+///-  It works weird that it doesn't vary with system appearance changing
     
-    // It works weird that it does'nt vary with system appearance changing
-    override func updateLayer() {
-        let rootLayer = self.layer!
-        
-        let highlightLayer = rootLayer.sublayers?.first {$0.name == "highlight"} ?? {
-            let layer = CALayer()
-            layer.name = "highlight"
-            layer.frame = rootLayer.bounds
-            layer.compositingFilter = "softLightBlendMode"
-            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            rootLayer.addSublayer(layer)
-            return layer
-        }()
-        
-        let bezelLayer = rootLayer.sublayers?.first {$0.name == "bezel"} ?? {
-            let layer = CALayer()
-            layer.name = "bezel"
-            layer.contentsGravity = .resizeAspectFill
-            layer.frame = rootLayer.bounds
-            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            rootLayer.addSublayer(layer)
-            return layer
-        }()
-        
-        let glyphLayer = rootLayer.sublayers?.first {$0.name == "glyph"} ?? {
-            let layer = CALayer()
-            layer.name = "glyph"
-            layer.contentsGravity = .center
-            layer.frame = rootLayer.bounds
-            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            rootLayer.addSublayer(layer)
-            return layer
-        }()
-        
-        let mineLayer = rootLayer.sublayers?.first {$0.name == "mine"} ?? {
-            let layer = CALayer()
-            layer.name = "mine"
-            layer.contents = Self.mineImage
-            layer.contentsGravity = .center
-            layer.frame = rootLayer.bounds
-            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            rootLayer.addSublayer(layer)
-            return layer
-        }()
-        
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        
-        if state == .exposed {
-            rootLayer.backgroundColor = Self.exposedBackgroundColor.cgColor
-            highlightLayer.isHidden = true
-            bezelLayer.contents = Self.exposedBezel
-        } else {
-            rootLayer.backgroundColor = Self.coveredBackgroundColor.cgColor
-            highlightLayer.contentsScale = rootLayer.contentsScale
-            highlightLayer.isHidden = false
-            highlightLayer.backgroundColor = CGColor(gray: 0.5 + 0.2 * luminosity, alpha: 1)
-            bezelLayer.contents = isPressing ? Self.pressedBezel : Self.coveredBezel
-        }
-        
-        bezelLayer.contentsScale = rootLayer.contentsScale
-        bezelLayer.contentsCenter = CGRect(x: 0, y: 0, width: 1, height: 1).insetBy(dx: 0.1, dy: 0.1)
-        
-        var glyph: NSImage?
-        switch state {
-        case .exposed:
-            guard hint > 0 else {break}
-            glyph =  Self.hintImages[hint - 1]
-
-        case .covered(withFlag: .certain):
-            glyph = Self.certainFlagGlyph
-
-        case .covered(withFlag: .uncertain):
-            glyph = Self.uncertainFlagGlyph
-        default:
-            break
-        }
-        
-        glyphLayer.contents = glyph
-        glyphLayer.contentsScale = rootLayer.contentsScale
-
-        if hint == -2 {
-            mineLayer.isHidden = false
-            mineLayer.compositingFilter = state == .exposed ? nil : "softLightBlendMode"
-            mineLayer.backgroundColor = CGColor(gray: 1, alpha: (1 - cos(2 * .pi * mineOpacity)) / 2)
-            mineLayer.contentsScale = rootLayer.contentsScale
-        } else {
-            mineLayer.isHidden = true
-        }
-        
-        CATransaction.commit()
-    }
+//    override var wantsUpdateLayer: Bool {wantsLayer}
+//
+//    override func updateLayer() {
+//        let rootLayer = self.layer!
+//
+//        let highlightLayer = rootLayer.sublayers?.first {$0.name == "highlight"} ?? {
+//            let layer = CALayer()
+//            layer.name = "highlight"
+//            layer.frame = rootLayer.bounds
+//            layer.compositingFilter = "softLightBlendMode"
+//            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+//            rootLayer.addSublayer(layer)
+//            return layer
+//        }()
+//
+//        let bezelLayer = rootLayer.sublayers?.first {$0.name == "bezel"} ?? {
+//            let layer = CALayer()
+//            layer.name = "bezel"
+//            layer.contentsGravity = .resizeAspectFill
+//            layer.frame = rootLayer.bounds
+//            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+//            rootLayer.addSublayer(layer)
+//            return layer
+//        }()
+//
+//        let glyphLayer = rootLayer.sublayers?.first {$0.name == "glyph"} ?? {
+//            let layer = CALayer()
+//            layer.name = "glyph"
+//            layer.contentsGravity = .center
+//            layer.frame = rootLayer.bounds
+//            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+//            rootLayer.addSublayer(layer)
+//            return layer
+//        }()
+//
+//        let mineLayer = rootLayer.sublayers?.first {$0.name == "mine"} ?? {
+//            let layer = CALayer()
+//            layer.name = "mine"
+//            layer.contents = Self.mineImage
+//            layer.contentsGravity = .center
+//            layer.frame = rootLayer.bounds
+//            layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+//            rootLayer.addSublayer(layer)
+//            return layer
+//        }()
+//
+//        CATransaction.begin()
+//        CATransaction.setDisableActions(true)
+//
+//        if state == .exposed {
+//            rootLayer.backgroundColor = Self.exposedBackgroundColor.cgColor
+//            highlightLayer.isHidden = true
+//            bezelLayer.contents = Self.exposedBezel
+//        } else {
+//            rootLayer.backgroundColor = Self.coveredBackgroundColor.cgColor
+//            highlightLayer.contentsScale = rootLayer.contentsScale
+//            highlightLayer.isHidden = false
+//            highlightLayer.backgroundColor = CGColor(gray: 0.5 + 0.2 * luminosity, alpha: 1)
+//            bezelLayer.contents = isPressing ? Self.pressedBezel : Self.coveredBezel
+//        }
+//
+//        bezelLayer.contentsScale = rootLayer.contentsScale
+//        bezelLayer.contentsCenter = CGRect(x: 0, y: 0, width: 1, height: 1).insetBy(dx: 0.1, dy: 0.1)
+//
+//        var glyph: NSImage?
+//        switch state {
+//        case .exposed:
+//            guard hint > 0 else {break}
+//            glyph =  Self.hintImages[hint - 1]
+//
+//        case .covered(withFlag: .certain):
+//            glyph = Self.certainFlagGlyph
+//
+//        case .covered(withFlag: .uncertain):
+//            glyph = Self.uncertainFlagGlyph
+//        default:
+//            break
+//        }
+//
+//        glyphLayer.contents = glyph
+//        glyphLayer.contentsScale = rootLayer.contentsScale
+//
+//        if hint == -2 {
+//            mineLayer.isHidden = false
+//            mineLayer.compositingFilter = state == .exposed ? nil : "softLightBlendMode"
+//            mineLayer.backgroundColor = CGColor(gray: 1, alpha: (1 - cos(2 * .pi * mineOpacity)) / 2)
+//            mineLayer.contentsScale = rootLayer.contentsScale
+//        } else {
+//            mineLayer.isHidden = true
+//        }
+//
+//        CATransaction.commit()
+//    }
 }
 
 struct MoundMatrix {
