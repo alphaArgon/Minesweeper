@@ -1,5 +1,5 @@
 # Minesweeper
-Minesweeper for Mac。
+Minesweeper for Mac.
 
 **System Requirements:** ≥ macOS Sierra 10.12
 
