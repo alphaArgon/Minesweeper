@@ -11,10 +11,19 @@ class AnimationWindow: NSWindow {
             dy: -viewType.frameSize.height / 2
         )
         let intersectedFrame = NSScreen.main!.visibleFrame.intersection(fullFrame)
+        
         super.init(
-            contentRect: intersectedFrame.maxY < fullFrame.maxY ? intersectedFrame : fullFrame,
-            styleMask: [.borderless], backing: .nonretained, defer: true
+            contentRect: NSRect(
+                x: fullFrame.minX,
+                y: intersectedFrame.minY,
+                width: fullFrame.width,
+                height: intersectedFrame.height
+            ),
+            styleMask: .borderless, backing: .nonretained, defer: true
         )
+        
+        contentView!.setBoundsOrigin(NSPoint(x: 0, y: intersectedFrame.minY - fullFrame.minY))
+        
         backgroundColor = .clear
         isReleasedWhenClosed = true
         ignoresMouseEvents = true

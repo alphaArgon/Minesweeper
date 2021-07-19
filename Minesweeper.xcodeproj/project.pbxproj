@@ -10,6 +10,7 @@
 		DE0603482673247C00E23129 /* SmileyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0603472673247C00E23129 /* SmileyButton.swift */; };
 		DE221034269C072B00EF399F /* MinefieldController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221033269C072B00EF399F /* MinefieldController.swift */; };
 		DE221037269CAA0200EF399F /* MinefieldController+ObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */; };
+		DE2D9A2426A33E8900FD13FE /* MoundMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2D9A2326A33E8900FD13FE /* MoundMatrix.swift */; };
 		DE35153F267C81B70090A03B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = DE351541267C81B70090A03B /* Localizable.strings */; };
 		DE496EF72671D0FD000FDABC /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE496EF62671D0FD000FDABC /* Animation.swift */; };
 		DE62FA4A2666807C00C17CD8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE62FA492666807C00C17CD8 /* AppDelegate.swift */; };
@@ -26,6 +27,7 @@
 		DE221033269C072B00EF399F /* MinefieldController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinefieldController.swift; sourceTree = "<group>"; };
 		DE221035269C812900EF399F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MinefieldController+ObjC.swift"; sourceTree = "<group>"; };
+		DE2D9A2326A33E8900FD13FE /* MoundMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoundMatrix.swift; sourceTree = "<group>"; };
 		DE351540267C81B70090A03B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		DE351542267C81CA0090A03B /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		DE351548267CF2540090A03B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 				DE221033269C072B00EF399F /* MinefieldController.swift */,
 				DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */,
 				DE62FA4B2666807C00C17CD8 /* Mound.swift */,
+				DE2D9A2326A33E8900FD13FE /* MoundMatrix.swift */,
 				DE496EF62671D0FD000FDABC /* Animation.swift */,
 				DE0603472673247C00E23129 /* SmileyButton.swift */,
 				DE7FE1112678C2D50002356A /* PreferenceSheet.swift */,
@@ -173,6 +176,7 @@
 				DE496EF72671D0FD000FDABC /* Animation.swift in Sources */,
 				DE221034269C072B00EF399F /* MinefieldController.swift in Sources */,
 				DE62FA4A2666807C00C17CD8 /* AppDelegate.swift in Sources */,
+				DE2D9A2426A33E8900FD13FE /* MoundMatrix.swift in Sources */,
 				DE62FA5A2666818D00C17CD8 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -328,12 +332,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -348,12 +353,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

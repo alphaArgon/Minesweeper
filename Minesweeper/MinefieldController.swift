@@ -197,11 +197,11 @@ class MinefieldController: NSViewController {
         
         if let states = userDefault(for: .states) as? String {
             isBattling = true
-            minefield.states = states
             timeInterval = userDefault(for: .timeInterval) as? Int ?? 0
-            startTimer()
-            
             removeUserDefaults(for: [.states, .timeInterval])
+            
+            minefield.states = states
+            startTimer()
             
             var numberOfFlags = 0
             minefield.moundMatrix.forEach {mound, _ in
@@ -318,12 +318,12 @@ extension MinefieldController: MinefieldDelegate {
 }
 
 extension MinefieldController: MoundDelegate {
-    func moundCanAct(_: Mound) -> Bool {canAct}
+    func moundCanAct(_ mound: Mound) -> Bool {canAct}
     
     func moundDidDig(_ mound: Mound) {
         if !isBattling {
             if !minefield.hasDeployed {
-                minefield.deployMines(indicesOfSafeMounds: minefield.moundMatrix.indexOf(mound)!.vicinities.filter {
+                minefield.deployMines(skip: minefield.moundMatrix.indexOf(mound)!.vicinities.filter {
                     minefield.moundMatrix.contains(index: $0)
                 })
             }

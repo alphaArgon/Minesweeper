@@ -68,7 +68,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
             (controller.smileyButton, smileyToolbarItem),
             (controller.counterButton, counterToolbarItem)
         ] {
-            button.bezelStyle = .texturedRounded            
+            button.bezelStyle = .texturedRounded
             toolbarItem.view = button
             toolbarItem.label = toolbarItem.paletteLabel
             if #available(OSX 10.16, *) {} else {
@@ -80,7 +80,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         window.title = "minesweeper".localized
         window.tabbingMode = .disallowed
         window.collectionBehavior = .fullScreenNone
-        window.backgroundColor = .windowBackgroundColor
         
         window.contentViewController = controller
         window.center()
@@ -151,4 +150,22 @@ extension NSMenu {
 
 extension String {
     var localized: String {NSLocalizedString(self, comment: "")}
+}
+
+extension NSImage {
+    var cgImage: CGImage? {
+        var frame = CGRect(origin: .zero, size: size)
+        return cgImage(forProposedRect: &frame, context: nil, hints: nil)
+    }
+}
+
+extension NSRect {
+    func insetBy(_ edgeInset: NSEdgeInsets) -> NSRect {
+        return NSRect(
+            x: minX + edgeInset.left,
+            y: minY + edgeInset.bottom,
+            width: width - edgeInset.left - edgeInset.right,
+            height: height - edgeInset.bottom - edgeInset.top
+        )
+    }
 }

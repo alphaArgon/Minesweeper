@@ -231,6 +231,8 @@ class PreferenceSheet: NSWindow {
     }
     
     @objc func switchDifficulty(_ sender: NSButton) {
+        makeFirstResponder(sender)
+        
         switch sender.tag {
         case 1:
             difficulty = .beginner

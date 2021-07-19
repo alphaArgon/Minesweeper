@@ -42,7 +42,8 @@ class Minefield: NSView {
     weak var delegate: MinefieldDelegate?
     
     var difficulty: Difficulty
-    var moundMatrix: MoundMatrix
+    var moundMatrix: MoundMatrix!
+    var moundDelegate: MoundDelegate
     
     var numberOfColumns: Int {difficulty.numberOfColumns}
     var numberOfRows: Int {difficulty.numberOfRows}
@@ -84,42 +85,31 @@ class Minefield: NSView {
     init(moundSize: CGFloat?, difficulty: Difficulty?, moundDelegate: MoundDelegate) {
         self.moundSize = round(moundSize ?? Self.standardMoundSize)
         self.difficulty = difficulty ?? .beginner
-        self.moundMatrix = MoundMatrix(
-            numberOfColumns: self.difficulty.numberOfColumns,
-            numberOfRows: self.difficulty.numberOfRows,
-            delegate: moundDelegate
-        )
+        self.moundDelegate = moundDelegate
         super.init(frame: NSRect(
             x: 0, y: 0,
             width: CGFloat(self.difficulty.numberOfColumns) * self.moundSize,
             height: CGFloat(self.difficulty.numberOfRows) * self.moundSize
         ))
         
-        canDrawSubviewsIntoLayer = true
         wantsLayer = true
         layerContentsRedrawPolicy = .onSetNeedsDisplay
-        
-        layoutMounds()
+        moundMatrix = MoundMatrix(
+            numberOfColumns: self.difficulty.numberOfColumns,
+            numberOfRows: self.difficulty.numberOfRows,
+            delegate: self
+        )
     }
     
     required init?(coder: NSCoder) {nil}
     
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        setWindowRatio()
+    override func viewDidChangeEffectiveAppearance() {
+        Mound.invalidCaches()
     }
     
     func layoutMounds() {
         moundMatrix.forEach {mound, index in
-            mound.luminosity = CGFloat(index.row) / CGFloat(numberOfRows - 1) * 2 - 1
-            mound.frame = NSRect(
-                x: CGFloat(index.column) * moundSize,
-                y: CGFloat(index.row) * moundSize,
-                width: moundSize, height: moundSize
-            )
-            if subviews.count < numberOfMounds{
-                addSubview(mound)
-            }
+            moundMatrix(moundMatrix, update: mound, at: index)
         }
     }
     
@@ -127,12 +117,13 @@ class Minefield: NSView {
         window!.contentAspectRatio = frame.size
     }
     
-    func reuse(undeploys: Bool) {
+    func reuse(undeploys: Bool, extraAction: ((Mound) -> Void)? = nil) {
         if undeploys {
             hasDeployed = false
             moundMatrix.forEach {mound in
                 mound.state = .covered(withFlag: .none)
                 mound.hint = 0
+                extraAction?(mound)
             }
         } else {
             moundMatrix.forEach {mound in
@@ -140,6 +131,7 @@ class Minefield: NSView {
                 if mound.hasMine {
                     mound.showsMine = false
                 }
+                extraAction?(mound)
             }
         }
     }
@@ -148,8 +140,6 @@ class Minefield: NSView {
         if moundMatrix.numberOfColumns == numberOfColumns, moundMatrix.numberOfRows == numberOfRows {
             return reuse(undeploys: true)
         }
-        
-        moundMatrix.setSize(numberOfColumns: numberOfColumns, numberOfRows: numberOfRows)
         
         hasDeployed = false
         
@@ -173,32 +163,22 @@ class Minefield: NSView {
         let oldCache = bitmapImageRepForCachingDisplay(in: bounds)!
         cacheDisplay(in: bounds, to: oldCache)
         
-        subviews.removeAll()
-        
-        reuse(undeploys: true)
-        
-        moundMatrix.forEach {mound, index in
-            mound.luminosity = CGFloat(index.row) / CGFloat(numberOfRows - 1) * 2 - 1
-            mound.frame = NSRect(
-                x: CGFloat(index.column) * moundSize,
-                y: CGFloat(index.row) * moundSize,
-                width: moundSize, height: moundSize
-            )
-            addSubview(mound)
-        }
+        moundMatrix.setSize(numberOfColumns: numberOfColumns, numberOfRows: numberOfRows)
+        reuse(undeploys: true) {$0.layout()}
         
         setFrameSize(newContentSize)
         
         let newCache = bitmapImageRepForCachingDisplay(in: bounds)!
         cacheDisplay(in: bounds, to: newCache)
         
+        subviews.forEach {$0.isHidden = true}
         setFrameSize(oldContentSize)
         
         let contentAnimation = CABasicAnimation(keyPath: "contents")
         contentAnimation.fromValue = oldCache.cgImage
-        contentAnimation.toValue = newCache.cgImage
-        contentAnimation.duration = duration * 1.25
-        
+        contentAnimation.duration = duration
+        contentAnimation.delegate = self
+        layer!.contents = newCache.cgImage
         layer!.add(contentAnimation, forKey: nil)
 
         window!.setFrame(newWindowFrame, display: false, animate: true)
@@ -211,16 +191,16 @@ class Minefield: NSView {
         setWindowRatio()
     }
     
-    func deployMines(indicesOfSafeMounds: Set<MoundMatrix.Index>) {
+    func deployMines(skip skippedIndices: Set<MoundMatrix.Index>) {
         var mineArray: [Bool] = []
         for _ in 0..<numberOfMines {mineArray.append(true)}
-        for _ in numberOfMines..<(numberOfColumns * numberOfRows - indicesOfSafeMounds.count) {mineArray.append(false)}
+        for _ in numberOfMines..<(numberOfColumns * numberOfRows - skippedIndices.count) {mineArray.append(false)}
         mineArray.shuffle()
         
         var offset = 0
-        moundMatrix.forEach {mound, index, internalIndex in
-            if indicesOfSafeMounds.contains(index) {return offset += 1}
-            if !mineArray[internalIndex - offset] {return}
+        moundMatrix.forEach {mound, index, rawIndex in
+            if skippedIndices.contains(index) {return offset += 1}
+            if !mineArray[rawIndex - offset] {return}
             
             mound.hasMine = true
             index.vicinities.forEach {vicinityIndex in
@@ -242,7 +222,7 @@ class Minefield: NSView {
         guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
             moundMatrix.forEach {mound, index in
                 if mound.hasMine {
-                    mound.showMine(animates: true, duration: 0.5)
+                    mound.showMine(animates: true, flashes: true, duration: 0.5)
                 }
             }
             return DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5, execute: callback)
@@ -349,7 +329,48 @@ class Minefield: NSView {
     }
 }
 
+extension Minefield: MoundMatrixDelegate {
+    func moundMatrix(_ moundMatrix: MoundMatrix, moundAt index: MoundMatrix.Index) -> Mound {
+        let mound = Mound()
+        mound.wantsLayer = wantsLayer
+        mound.delegate = moundDelegate
+        self.moundMatrix(moundMatrix, update: mound, at: index)
+        addSubview(mound)
+        return mound
+    }
+    
+    func moundMatrix(_ moundMatrix: MoundMatrix, update mound: Mound, at index: MoundMatrix.Index) {
+        mound.luminosity = CGFloat(index.row) / CGFloat(numberOfRows - 1) * 2 - 1
+        
+        mound.bezelInsets.bottom = index.row == 0 ? -1 : 0
+        mound.bezelInsets.left = index.column == 0 ? -1 : 0
+        mound.bezelInsets.right = index.column == numberOfColumns - 1 ? -1 : 0
+        
+        mound.frame = NSRect(
+            x: CGFloat(index.column) * moundSize,
+            y: CGFloat(index.row) * moundSize,
+            width: moundSize, height: moundSize
+        )
+    }
+    
+    func moundMatrix(_ moundMatrix: MoundMatrix, didRemove mound: Mound) {
+        mound.removeFromSuperview()
+    }
+}
+
+extension Minefield: CAAnimationDelegate {
+    func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+        subviews.forEach {$0.isHidden = false}
+        layer!.contents = nil
+    }
+}
+
 extension Minefield: NSWindowDelegate {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        setWindowRatio()
+    }
+    
     func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame newFrame: NSRect) -> NSRect {
         let contentRect = window.contentRect(forFrameRect: NSRect(
             x: 0, y: 0,
