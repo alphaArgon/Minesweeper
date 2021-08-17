@@ -44,7 +44,7 @@ extension MinefieldController {
     @objc func openPreferences(_: Any?) {
         minefield.stopAllAnimationsIfNeeded()
         
-        let preferenceSheet = PreferenceSheet(difficulty: minefield.difficulty, sadMacBehavior: sadMacBehavior, isBattling: isBattling)
+        let preferenceSheet = PreferenceSheet(difficulty: minefield.difficulty, mineStyle: mineStyle, sadMacBehavior: sadMacBehavior, isBattling: isBattling)
         
         minefield.window!.beginSheet(preferenceSheet) {response in
             guard response == .OK else {return}
@@ -62,7 +62,8 @@ extension MinefieldController {
             }
             
             self.sadMacBehavior = preferenceSheet.sadMacBehavior
-            self.setUserDefaults(for: [.sadMacBehavior])
+            self.mineStyle = preferenceSheet.mineStyle
+            self.setUserDefaults(for: [.sadMacBehavior, .mineStyle])
         }
     }
 }

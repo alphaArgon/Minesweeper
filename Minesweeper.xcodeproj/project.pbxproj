@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		DE0603482673247C00E23129 /* SmileyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0603472673247C00E23129 /* SmileyButton.swift */; };
+		DE1508AB26CB93350073359F /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = DE1508AD26CB93350073359F /* Credits.html */; };
 		DE221034269C072B00EF399F /* MinefieldController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221033269C072B00EF399F /* MinefieldController.swift */; };
 		DE221037269CAA0200EF399F /* MinefieldController+ObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */; };
 		DE2D9A2426A33E8900FD13FE /* MoundMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE2D9A2326A33E8900FD13FE /* MoundMatrix.swift */; };
@@ -24,6 +25,9 @@
 
 /* Begin PBXFileReference section */
 		DE0603472673247C00E23129 /* SmileyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmileyButton.swift; sourceTree = "<group>"; };
+		DE1508AC26CB93350073359F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = "zh-Hans"; path = "zh-Hans.lproj/Credits.html"; sourceTree = "<group>"; };
+		DE1508AF26CB933B0073359F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = "zh-Hant"; path = "zh-Hant.lproj/Credits.html"; sourceTree = "<group>"; };
+		DE1508B126CB936E0073359F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = en; path = en.lproj/Credits.html; sourceTree = "<group>"; };
 		DE221033269C072B00EF399F /* MinefieldController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinefieldController.swift; sourceTree = "<group>"; };
 		DE221035269C812900EF399F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MinefieldController+ObjC.swift"; sourceTree = "<group>"; };
@@ -90,6 +94,7 @@
 				DE351548267CF2540090A03B /* Info.plist */,
 				DE9D629C26A0521E008C6E94 /* InfoPlist.strings */,
 				DE351541267C81B70090A03B /* Localizable.strings */,
+				DE1508AD26CB93350073359F /* Credits.html */,
 				DE62FA532666807E00C17CD8 /* Minesweeper.entitlements */,
 			);
 			path = Minesweeper;
@@ -156,6 +161,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE62FA4E2666807E00C17CD8 /* Assets.xcassets in Resources */,
+				DE1508AB26CB93350073359F /* Credits.html in Resources */,
 				DE9D629A26A0521E008C6E94 /* InfoPlist.strings in Resources */,
 				DE35153F267C81B70090A03B /* Localizable.strings in Resources */,
 			);
@@ -184,6 +190,17 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		DE1508AD26CB93350073359F /* Credits.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DE1508AC26CB93350073359F /* zh-Hans */,
+				DE1508AF26CB933B0073359F /* zh-Hant */,
+				DE1508B126CB936E0073359F /* en */,
+			);
+			name = Credits.html;
+			sourceTree = "<group>";
+			wrapsLines = 1;
+		};
 		DE351541267C81B70090A03B /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -332,13 +349,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -353,13 +370,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

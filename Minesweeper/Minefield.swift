@@ -303,6 +303,22 @@ class Minefield: NSView {
         )
     }
     
+    func disturb(from centerMound: Mound, then callback: @escaping () -> Void) {
+        let delay = Double(SpinView.indexOfMaxContentFrame) * SpinView.frameDuration
+        
+        beginAnimationWindow(
+            from: centerMound,
+            animationViewType: SpinView.self,
+            subanimationWillStart: {mound in
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
+                    mound.showMine(animates: true, duration: 0.25)
+                }
+            },
+            delaysAfterFirstSubanimation: true,
+            then: callback
+        )
+    }
+    
     func stopAllAnimationsIfNeeded() {
         window?.childWindows?.forEach {window in
             if window is AnimationWindow {
@@ -341,10 +357,12 @@ extension Minefield: MoundMatrixDelegate {
     
     func moundMatrix(_ moundMatrix: MoundMatrix, update mound: Mound, at index: MoundMatrix.Index) {
         mound.luminosity = CGFloat(index.row) / CGFloat(numberOfRows - 1) * 2 - 1
-        
-        mound.bezelInsets.bottom = index.row == 0 ? -1 : 0
-        mound.bezelInsets.left = index.column == 0 ? -1 : 0
-        mound.bezelInsets.right = index.column == numberOfColumns - 1 ? -1 : 0
+        mound.bezelInsets = NSEdgeInsets(
+            top: 0,
+            left: index.column == 0 ? -1 : 0,
+            bottom: index.row == 0 ? -1 : 0,
+            right: index.column == numberOfColumns - 1 ? -1 : 0
+        )
         
         mound.frame = NSRect(
             x: CGFloat(index.column) * moundSize,

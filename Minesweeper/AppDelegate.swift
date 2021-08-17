@@ -71,7 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
             button.bezelStyle = .texturedRounded
             toolbarItem.view = button
             toolbarItem.label = toolbarItem.paletteLabel
-            if #available(OSX 10.16, *) {} else {
+            if #available(OSX 10.14, *) {} else {
                 toolbarItem.minSize = button.fittingSize
             }
         }
@@ -168,4 +168,24 @@ extension NSRect {
             height: height - edgeInset.bottom - edgeInset.top
         )
     }
+}
+
+extension NSColor {
+    static let accentRed: NSColor = NSColor(red: 0.9, green: 0.19, blue: 0.24, alpha: 1)
+    static let accentOrange: NSColor = NSColor(red: 0.95, green: 0.42, blue: 0.1, alpha: 1)
+    static let accentYellow: NSColor = NSColor(red: 1, green: 0.68, blue: 0, alpha: 1)
+    static let accentGreen: NSColor = NSColor(red: 0.33, green: 0.78, blue: 0.13, alpha: 1)
+    static let accentBlue: NSColor = NSColor(red: 0, green: 0.5, blue: 1, alpha: 1)
+    static let accentVoilet: NSColor = NSColor(red: 0.3, green: 0.2, blue: 1, alpha: 1)
+    static let accentPurple: NSColor = NSColor(red: 0.69, green: 0.2, blue: 0.72, alpha: 1)
+    static let accentPink: NSColor = NSColor(red: 0.93, green: 0.2, blue: 0.55, alpha: 1)
+    static let accentGraphite: NSColor = NSColor(red: 0.56, green: 0.56, blue: 0.58, alpha: 1)
+    static let accentGold: NSColor = NSColor(red: 0.67, green: 0.53, blue: 0.33, alpha: 1)
+    static let accentCyan: NSColor = NSColor(red: 0, green: 0.87, blue: 0.8, alpha: 1)
+    
+    static let accentBlood: NSColor = NSColor(red: 0.7, green: 0.15, blue: 0.15, alpha: 1)
+    static let accentCopper: NSColor = NSColor(red: 0.9, green: 0.28, blue: 0.1, alpha: 1)
+    static let accentConifer: NSColor = NSColor(red: 0.1, green: 0.54, blue: 0.63, alpha: 1)
+    static let accentOcean: NSColor = NSColor(red: 0.1, green: 0.43, blue: 0.67, alpha: 1)
+    static let accentIndigo: NSColor = NSColor(red: 0.39, green: 0.38, blue: 0.66, alpha: 1)
 }

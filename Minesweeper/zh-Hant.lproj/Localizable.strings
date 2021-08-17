@@ -41,3 +41,6 @@ start-a-new-game        = "開始新遊戲";
 do-nothing              = "什麼都不做";
 difficulty-label        = "難度：";
 click-sad-mac-label     = "點按 Sad Mac 以：";
+mine-style-label        = "地雷樣式：";
+mine-style-bomb         = "炸彈";
+mine-style-flower       = "花朵";

@@ -8,25 +8,21 @@ class MinefieldController: NSViewController {
         
         var description: String {
             switch self {
-            case .askEveryTime:
-                return "do-nothing".localized
-            case .redeploy:
-                return "start-a-new-game".localized
-            case .replay:
-                return "replay".localized
+            case .askEveryTime: return "do-nothing".localized
+            case .redeploy:     return "start-a-new-game".localized
+            case .replay:       return "replay".localized
             }
         }
     }
     
     enum UserDefaultsKey: String {
         case moundSize = "MoundSize"
+        case mineStyle = "MineStyle"
         case difficulty = "Difficulty"
         case sadMacBehavior = "SadMacBehavior"
         case states = "States"
         case timeInterval = "TimeInterval"
     }
-    
-    let userDefaults: UserDefaults = UserDefaults()
     
     var minefield: Minefield {
         set {view = newValue}
@@ -48,6 +44,7 @@ class MinefieldController: NSViewController {
     var isAlive: Bool = true
     var canAct: Bool = true
     
+    var mineStyle: Mound.MineStyle = .bomb
     var sadMacBehavior: SadMacBehavior = .askEveryTime
     
     var nextDifficultyReminder: String = ""
@@ -127,22 +124,24 @@ class MinefieldController: NSViewController {
     func userDefault(for key: UserDefaultsKey) -> Any? {
         switch key {
         case .moundSize:
-            if let moundSize = userDefaults.object(forKey: key.rawValue) as? Double {
+            if let moundSize = UserDefaults.standard.object(forKey: key.rawValue) as? Double {
                 return CGFloat(moundSize)
             }
+        case .mineStyle:
+            return Mound.MineStyle(rawValue: UserDefaults.standard.integer(forKey: key.rawValue))
         case .difficulty:
-            if let difficulty = userDefaults.array(forKey: key.rawValue) as? [Int] {
+            if let difficulty = UserDefaults.standard.array(forKey: key.rawValue) as? [Int] {
                 return Minefield.Difficulty(rawValues: difficulty)
             }
         case .sadMacBehavior:
-            if let sadMacBehavior = userDefaults.object(forKey: key.rawValue) as? Int {
+            if let sadMacBehavior = UserDefaults.standard.object(forKey: key.rawValue) as? Int {
                 return SadMacBehavior(rawValue: sadMacBehavior)
             }
         case .states:
-            return userDefaults.string(forKey: key.rawValue)
+            return UserDefaults.standard.string(forKey: key.rawValue)
             
         case .timeInterval:
-            return userDefaults.object(forKey: key.rawValue) as? Int
+            return UserDefaults.standard.object(forKey: key.rawValue) as? Int
         }
         
         return nil
@@ -152,28 +151,32 @@ class MinefieldController: NSViewController {
         keys.forEach {key in
             switch key {
             case .moundSize:
-                userDefaults.set(minefield.moundSize, forKey: key.rawValue)
+                UserDefaults.standard.set(minefield.moundSize, forKey: key.rawValue)
+            case .mineStyle:
+                UserDefaults.standard.set(mineStyle.rawValue, forKey: key.rawValue)
             case .difficulty:
-                userDefaults.set(minefield.difficulty.rawValues, forKey: key.rawValue)
+                UserDefaults.standard.set(minefield.difficulty.rawValues, forKey: key.rawValue)
             case .sadMacBehavior:
-                userDefaults.set(sadMacBehavior.rawValue, forKey: key.rawValue)
+                UserDefaults.standard.set(sadMacBehavior.rawValue, forKey: key.rawValue)
             case .states:
-                userDefaults.set(minefield.states, forKey: key.rawValue)
+                UserDefaults.standard.set(minefield.states, forKey: key.rawValue)
             case .timeInterval:
-                userDefaults.set(timeInterval, forKey: key.rawValue)
+                UserDefaults.standard.set(timeInterval, forKey: key.rawValue)
             }
         }
     }
     
     func removeUserDefaults(for keys: [UserDefaultsKey]) {
-        keys.forEach {key in
-            userDefaults.removeObject(forKey: key.rawValue)
-        }
+        keys.forEach {UserDefaults.standard.removeObject(forKey: $0.rawValue)}
     }
     
     override func loadView() {
         if let sadMacBehavior = userDefault(for: .sadMacBehavior) as? SadMacBehavior {
             self.sadMacBehavior = sadMacBehavior
+        }
+        
+        if let mineStyle = userDefault(for: .mineStyle) as? Mound.MineStyle {
+            self.mineStyle = mineStyle
         }
         
         minefield = Minefield(
@@ -282,8 +285,8 @@ class MinefieldController: NSViewController {
         isAlive = false
         canAct = false
         smileyButton.emotion = .sad
-
-        minefield.explode(from: mound) {
+        
+        let callback = {
             if self.sadMacBehavior == .askEveryTime {
                 self.failedAlert.beginSheetModal(for: self.minefield.window!) {response in
                     self.relive(redeploys: response == .alertFirstButtonReturn)
@@ -292,9 +295,13 @@ class MinefieldController: NSViewController {
                 self.smileyButton.isEnabled = true
             }
         }
+        
+        switch mineStyle {
+        case .bomb: minefield.explode(from: mound, then: callback);
+        case .flower: minefield.disturb(from: mound, then: callback);
+        }
     }
 }
-
 
 extension MinefieldController: MinefieldDelegate {
     func minefieldWindowShouldClose(_: Minefield) -> Bool {
@@ -318,6 +325,8 @@ extension MinefieldController: MinefieldDelegate {
 }
 
 extension MinefieldController: MoundDelegate {
+    func moundMineStyle(_: Mound) -> Mound.MineStyle {mineStyle}
+    
     func moundCanAct(_ mound: Mound) -> Bool {canAct}
     
     func moundDidDig(_ mound: Mound) {
@@ -341,11 +350,16 @@ extension MinefieldController: MoundDelegate {
             return succeed(by: mound)
         }
         
+        let index = minefield.moundMatrix.indexOf(mound)!
+        if index.row == minefield.difficulty.numberOfRows - 1 {
+            mound.bezelInsets.top = -0.5;
+        }
+        
         if mound.hint > 0 {
             return
         }
         
-        minefield.moundMatrix.indexOf(mound)!.vicinities.forEach {vicinityIndex in
+        index.vicinities.forEach {vicinityIndex in
             if let vicinityMound = minefield.moundMatrix[vicinityIndex],
                 !vicinityMound.hasMine,
                 vicinityMound.state == .covered(withFlag: .none) {

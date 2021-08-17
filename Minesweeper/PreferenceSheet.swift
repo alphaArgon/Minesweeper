@@ -1,10 +1,11 @@
 import AppKit
 
 class PreferenceSheet: NSWindow {
-    let windowMargin: CGFloat = 20
+    let contentMargin: CGFloat = 20
     
     var givesUpToApplyDifficulty: Bool = false
     var difficulty: Minefield.Difficulty
+    var mineStyle: Mound.MineStyle
     var sadMacBehavior: MinefieldController.SadMacBehavior
     var isBattling: Bool
     
@@ -22,13 +23,15 @@ class PreferenceSheet: NSWindow {
     let heightInput = IntegerTextField()
     let mineInput = IntegerTextField()
     let applyCheckbox = NSButton(checkboxWithTitle: "apply-checkbox".localized, target: nil, action: nil)
+    let mineStylePopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     let sadMacPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     let okButton = NSButton(title: "alert-ok".localized, target: nil, action: nil)
     let cancelButton = NSButton(title: "alert-cancel".localized, target: nil, action: nil)
     
-    init(difficulty: Minefield.Difficulty, sadMacBehavior: MinefieldController.SadMacBehavior, isBattling: Bool) {
+    init(difficulty: Minefield.Difficulty, mineStyle: Mound.MineStyle, sadMacBehavior: MinefieldController.SadMacBehavior, isBattling: Bool) {
         self.originDifficulty = difficulty
         self.difficulty = difficulty
+        self.mineStyle = mineStyle
         self.sadMacBehavior = sadMacBehavior
         self.isBattling = isBattling
         
@@ -67,13 +70,17 @@ class PreferenceSheet: NSWindow {
         heightInput.action = #selector(fillDifficulty(_:))
         mineInput.action = #selector(fillDifficulty(_:))
 
-        helpLabel.stringValue = String(format: "preferences-help-label".localized, difficulty.numberOfColumns, difficulty.numberOfRows, difficulty.numberOfMines)
+        helpLabel.stringValue = String(format: "preferences-help-label".localized,
+                                       difficulty.numberOfColumns, difficulty.numberOfRows, difficulty.numberOfMines)
         helpLabel.font = NSFont(descriptor: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize).fontDescriptor.addingAttributes([
             NSFontDescriptor.AttributeName.featureSettings: [[
                 NSFontDescriptor.FeatureKey.typeIdentifier: kCaseSensitiveLayoutType,
                 NSFontDescriptor.FeatureKey.selectorIdentifier: kCaseSensitiveLayoutOnSelector
             ]]
         ]), size: NSFont.smallSystemFontSize)
+        
+        multiplyLabel.alignment = .center
+        
         
         switch difficulty {
         case .beginner:
@@ -96,6 +103,14 @@ class PreferenceSheet: NSWindow {
         applyCheckbox.target = self
         applyCheckbox.action = #selector(toggleApplyCheckbox(_:))
         
+        mineStylePopUp.addItems(withTitles: [
+            Mound.MineStyle(rawValue: 0)!.description,
+            Mound.MineStyle(rawValue: 1)!.description
+        ])
+        mineStylePopUp.selectItem(at: mineStyle.rawValue)
+        mineStylePopUp.target = self
+        mineStylePopUp.action = #selector(selectMineStylePopUp(_:))
+        
         sadMacPopUp.addItems(withTitles: [
             MinefieldController.SadMacBehavior(rawValue: 0)!.description,
             MinefieldController.SadMacBehavior(rawValue: 1)!.description,
@@ -107,6 +122,7 @@ class PreferenceSheet: NSWindow {
         
         let difficultyLabel = NSTextField(labelWithString: "difficulty-label".localized)
         let clickSadMacLabel = NSTextField(labelWithString: "click-sad-mac-label".localized)
+        let mineStyleLabel = NSTextField(labelWithString: "mine-style-label".localized)
         
         let separator = NSBox()
         separator.boxType = .separator
@@ -124,6 +140,7 @@ class PreferenceSheet: NSWindow {
             [placeholder(),     placeholder(),              helpLabel,          placeholder()                                                   ],
             [placeholder(),     applyCheckbox                                                                                                   ],
             [clickSadMacLabel,  sadMacPopUp                                                                                                     ],
+            [mineStyleLabel,    mineStylePopUp,                                                                                                 ],
             [separator                                                                                                                          ]
         ])
         
@@ -140,10 +157,12 @@ class PreferenceSheet: NSWindow {
         contentGrid.row(at: 4).topPadding = NSFont.systemFontSize
         contentGrid.row(at: 4).mergeCells(in: NSRange(location: 1, length: 6))
         contentGrid.row(at: 5).topPadding = NSFont.systemFontSize * 1.5
-        contentGrid.row(at: 5).mergeCells(in: NSRange(location: 1, length: 6))
-        contentGrid.row(at: 6).mergeCells(in: NSRange(location: 0, length: 7))
-        contentGrid.row(at: 6).topPadding = NSFont.systemFontSize * 1.25
-        contentGrid.row(at: 6).bottomPadding = NSFont.systemFontSize * 1
+        contentGrid.row(at: 5).mergeCells(in: NSRange(location: 1, length: 2))
+        contentGrid.row(at: 6).topPadding = NSFont.systemFontSize * 1.5
+        contentGrid.row(at: 6).mergeCells(in: NSRange(location: 1, length: 2))
+        contentGrid.row(at: 7).mergeCells(in: NSRange(location: 0, length: 7))
+        contentGrid.row(at: 7).topPadding = NSFont.systemFontSize * 1.25
+        contentGrid.row(at: 7).bottomPadding = NSFont.systemFontSize * 1
         
         contentGrid.rowSpacing = NSFont.systemFont(ofSize: -1).xHeight * 0.5
         contentGrid.columnSpacing = 0
@@ -151,9 +170,11 @@ class PreferenceSheet: NSWindow {
         contentGrid.column(at: 0).trailingPadding = NSFont.systemFontSize
         contentGrid.column(at: 0).xPlacement = .trailing
         contentGrid.column(at: 1).width = 19
+        contentGrid.column(at: 1).xPlacement = .fill
         contentGrid.column(at: 2).trailingPadding = NSFont.systemFontSize * 1.5
         contentGrid.column(at: 3).xPlacement = .trailing
         contentGrid.column(at: 4).width = NSFont.systemFontSize * 2.5
+        contentGrid.column(at: 5).width = NSFont.systemFontSize * 1.5
         contentGrid.column(at: 6).width = NSFont.systemFontSize * 2.5
         
         okButton.tag = 1
@@ -164,19 +185,19 @@ class PreferenceSheet: NSWindow {
         cancelButton.action = #selector(collapseSheet(_:))
         
         let buttonSize: CGFloat = 88
-        okButton.frame = NSRect(x: okButton.alignmentRectInsets.right - buttonSize - windowMargin, y: windowMargin - okButton.alignmentRectInsets.bottom, width: buttonSize, height: okButton.frame.height)
-        cancelButton.frame = NSRect(x: okButton.frame.minX - buttonSize, y: windowMargin - cancelButton.alignmentRectInsets.bottom, width: buttonSize, height: cancelButton.frame.height)
+        okButton.frame = NSRect(x: okButton.alignmentRectInsets.right - buttonSize - contentMargin, y: contentMargin - okButton.alignmentRectInsets.bottom, width: buttonSize, height: okButton.frame.height)
+        cancelButton.frame = NSRect(x: okButton.frame.minX - buttonSize, y: contentMargin - cancelButton.alignmentRectInsets.bottom, width: buttonSize, height: cancelButton.frame.height)
         okButton.autoresizingMask = [.minXMargin]
         cancelButton.autoresizingMask = [.minXMargin]
         okButton.keyEquivalent = "\r"
         
-        contentGrid.frame = NSRect(origin: NSPoint(x: windowMargin, y: okButton.frame.maxY), size: contentGrid.fittingSize)
+        contentGrid.frame = NSRect(origin: NSPoint(x: contentMargin, y: okButton.frame.maxY), size: contentGrid.fittingSize)
         
         contentView!.addSubview(contentGrid)
         contentView!.addSubview(okButton)
         contentView!.addSubview(cancelButton)
         
-        setContentSize(NSSize(width: contentGrid.frame.maxX + windowMargin, height: contentGrid.frame.maxY + windowMargin))
+        setContentSize(NSSize(width: contentGrid.frame.maxX + contentMargin, height: contentGrid.frame.maxY + contentMargin))
     }
     
     func validControls() {
@@ -188,7 +209,8 @@ class PreferenceSheet: NSWindow {
         } else {
             controls.forEach {$0.isEnabled = false}
             helpLabel.textColor = nil
-            helpLabel.stringValue = String(format: "preferences-help-label".localized, difficulty.numberOfColumns, difficulty.numberOfRows, difficulty.numberOfMines)
+            helpLabel.stringValue = String(format: "preferences-help-label".localized,
+                                           difficulty.numberOfColumns, difficulty.numberOfRows, difficulty.numberOfMines)
         }
         
         applyCheckbox.isEnabled = isBattling && difficulty != originDifficulty
@@ -234,16 +256,13 @@ class PreferenceSheet: NSWindow {
         makeFirstResponder(sender)
         
         switch sender.tag {
-        case 1:
-            difficulty = .beginner
-        case 2:
-            difficulty = .intermediate
-        case 3:
-            difficulty = .advanced
-        default:
-            difficulty = .init(numberOfColumns: widthInput.value, numberOfRows: heightInput.value, numberOfMines: mineInput.value)
+        case 1: difficulty = .beginner
+        case 2: difficulty = .intermediate
+        case 3: difficulty = .advanced
+        default: difficulty = .init(numberOfColumns: widthInput.value,
+                                    numberOfRows: heightInput.value,
+                                    numberOfMines: mineInput.value)
         }
-
         validControls()
     }
     
@@ -264,6 +283,10 @@ class PreferenceSheet: NSWindow {
     
     @objc func selectSadMacPopUp(_ sender: NSPopUpButton) {
         sadMacBehavior = MinefieldController.SadMacBehavior(rawValue: sender.indexOfSelectedItem)!
+    }
+    
+    @objc func selectMineStylePopUp(_ sender: NSPopUpButton) {
+        mineStyle = Mound.MineStyle(rawValue: sender.indexOfSelectedItem)!
     }
     
     @objc func collapseSheet(_ sender: NSButton) {

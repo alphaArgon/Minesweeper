@@ -84,6 +84,20 @@ final class BoomView: AnimationView {
     override class var frameDuration: TimeInterval {0.05}
 }
 
+final class SpinView: AnimationView {
+    static let indexOfMaxContentFrame: Int = 8
+    static let _frames: [NSImage] = {
+        var frames: [NSImage] = []
+        for i in 1...24 {
+            frames.append(NSImage(named: "Spin\(i)")!)
+        }
+        return frames
+    }()
+    
+    override class var frames: [NSImage] {_frames}
+    override class var frameDuration: TimeInterval {0.04}
+}
+
 final class ShineView: AnimationView {
     static let initialMoundFrameSize: NSSize = NSSize(width: 22, height: 22)
     static let _frames: [NSImage] = {
