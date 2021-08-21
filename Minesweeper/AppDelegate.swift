@@ -4,10 +4,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
     let window: NSWindow = NSWindow(contentRect: .zero, styleMask: [.closable, .miniaturizable, .titled, .resizable], backing: .buffered, defer: true)
     let controller: MinefieldController = MinefieldController()
     
-    let timerToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .timer)
-    let smileyToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .smiley)
-    let counterToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .counter)
-    
     func applicationWillFinishLaunching(_: Notification) {
         let appMenu = NSMenu(title: "minesweeper".localized)
         appMenu.addItem(withTitle: "about-minesweeper".localized, action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
@@ -33,6 +29,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         
         let windowsMenu = NSMenu(title: "window".localized)
         windowsMenu.addItem(withTitle: "minimize".localized, action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowsMenu.addItem(.separator())
+        windowsMenu.addItem(withTitle: "customize-toolbar".localized, action: #selector(NSWindow.runToolbarCustomizationPalette(_:)), keyEquivalent: "")
         
         let helpMenu = NSMenu(title: "help".localized)
         helpMenu.addItem(withTitle: "minesweeper-help".localized, action: #selector(NSApplication.showHelp(_:)), keyEquivalent: "?")
@@ -51,29 +49,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         let toolbar = NSToolbar(identifier: "Toolbar")
         toolbar.delegate = self
         toolbar.displayMode = .iconOnly
+        toolbar.allowsUserCustomization = true
+        toolbar.autosavesConfiguration = true
+        
         if #available(OSX 10.14, *) {
             toolbar.centeredItemIdentifier = .smiley
         }
         
-        if #available(OSX 10.16, *) {
-            window.toolbarStyle = .expanded
+        if #available(OSX 10.16, *), controller.minefield.fieldStyle == .solid {
+//            window.toolbarStyle = .expanded
         }
         
-        timerToolbarItem.paletteLabel = "timer".localized
-        smileyToolbarItem.paletteLabel = "smiley".localized
-        counterToolbarItem.paletteLabel = "counter".localized
-        
-        for (button, toolbarItem) in [
-            (controller.timerButton, timerToolbarItem),
-            (controller.smileyButton, smileyToolbarItem),
-            (controller.counterButton, counterToolbarItem)
-        ] {
-            button.bezelStyle = .texturedRounded
-            toolbarItem.view = button
-            toolbarItem.label = toolbarItem.paletteLabel
-            if #available(OSX 10.14, *) {} else {
-                toolbarItem.minSize = button.fittingSize
-            }
+        if controller.minefield.fieldStyle == .sheet {
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            toolbar.showsBaselineSeparator = false
         }
         
         window.toolbar = toolbar
@@ -105,17 +95,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
     }
     
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        return [.timer, .flexibleSpace, .smiley, .flexibleSpace, .counter]
+        return controller.minefield.fieldStyle == .sheet
+            ? [.smiley, .flexibleSpace, .counter, .timer]
+            : [.timer, .flexibleSpace, .smiley, .flexibleSpace, .counter]
     }
     
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
         switch itemIdentifier {
         case .timer:
-            return timerToolbarItem
+            return controller.timerToolbarItem
         case .smiley:
-            return smileyToolbarItem
+            return controller.smileyToolbarItem
         case .counter:
-            return counterToolbarItem
+            return controller.counterToolbarItem
         default:
             return nil
         }

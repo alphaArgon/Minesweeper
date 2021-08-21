@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DE0603482673247C00E23129 /* SmileyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0603472673247C00E23129 /* SmileyButton.swift */; };
+		DE0603482673247C00E23129 /* ToolbarButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0603472673247C00E23129 /* ToolbarButtons.swift */; };
 		DE1508AB26CB93350073359F /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = DE1508AD26CB93350073359F /* Credits.html */; };
 		DE221034269C072B00EF399F /* MinefieldController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221033269C072B00EF399F /* MinefieldController.swift */; };
 		DE221037269CAA0200EF399F /* MinefieldController+ObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE221036269CAA0200EF399F /* MinefieldController+ObjC.swift */; };
@@ -19,12 +19,14 @@
 		DE62FA4E2666807E00C17CD8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DE62FA4D2666807E00C17CD8 /* Assets.xcassets */; };
 		DE62FA5A2666818D00C17CD8 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE62FA592666818D00C17CD8 /* main.swift */; };
 		DE7FE1122678C2D50002356A /* PreferenceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE7FE1112678C2D50002356A /* PreferenceSheet.swift */; };
+		DE9D13A226D0C0250005756D /* AppIcon.X.icns in Resources */ = {isa = PBXBuildFile; fileRef = DE9D13A026D0C0250005756D /* AppIcon.X.icns */; };
+		DE9D13A326D0C0250005756D /* AppIcon.XI.icns in Resources */ = {isa = PBXBuildFile; fileRef = DE9D13A126D0C0250005756D /* AppIcon.XI.icns */; };
 		DE9D629A26A0521E008C6E94 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = DE9D629C26A0521E008C6E94 /* InfoPlist.strings */; };
 		DECDCCEA2667479000519DB1 /* Minefield.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECDCCE92667479000519DB1 /* Minefield.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		DE0603472673247C00E23129 /* SmileyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmileyButton.swift; sourceTree = "<group>"; };
+		DE0603472673247C00E23129 /* ToolbarButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarButtons.swift; sourceTree = "<group>"; };
 		DE1508AC26CB93350073359F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = "zh-Hans"; path = "zh-Hans.lproj/Credits.html"; sourceTree = "<group>"; };
 		DE1508AF26CB933B0073359F /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = "zh-Hant"; path = "zh-Hant.lproj/Credits.html"; sourceTree = "<group>"; };
 		DE1508B126CB936E0073359F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = en; path = en.lproj/Credits.html; sourceTree = "<group>"; };
@@ -43,6 +45,8 @@
 		DE62FA532666807E00C17CD8 /* Minesweeper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Minesweeper.entitlements; sourceTree = "<group>"; };
 		DE62FA592666818D00C17CD8 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		DE7FE1112678C2D50002356A /* PreferenceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceSheet.swift; sourceTree = "<group>"; wrapsLines = 0; };
+		DE9D13A026D0C0250005756D /* AppIcon.X.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.X.icns; sourceTree = "<group>"; };
+		DE9D13A126D0C0250005756D /* AppIcon.XI.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.XI.icns; sourceTree = "<group>"; };
 		DE9D629B26A0521E008C6E94 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		DE9D629D26A05222008C6E94 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		DE9D629E26A05223008C6E94 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
@@ -88,9 +92,11 @@
 				DE62FA4B2666807C00C17CD8 /* Mound.swift */,
 				DE2D9A2326A33E8900FD13FE /* MoundMatrix.swift */,
 				DE496EF62671D0FD000FDABC /* Animation.swift */,
-				DE0603472673247C00E23129 /* SmileyButton.swift */,
+				DE0603472673247C00E23129 /* ToolbarButtons.swift */,
 				DE7FE1112678C2D50002356A /* PreferenceSheet.swift */,
 				DE62FA4D2666807E00C17CD8 /* Assets.xcassets */,
+				DE9D13A026D0C0250005756D /* AppIcon.X.icns */,
+				DE9D13A126D0C0250005756D /* AppIcon.XI.icns */,
 				DE351548267CF2540090A03B /* Info.plist */,
 				DE9D629C26A0521E008C6E94 /* InfoPlist.strings */,
 				DE351541267C81B70090A03B /* Localizable.strings */,
@@ -161,7 +167,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				DE62FA4E2666807E00C17CD8 /* Assets.xcassets in Resources */,
+				DE9D13A326D0C0250005756D /* AppIcon.XI.icns in Resources */,
 				DE1508AB26CB93350073359F /* Credits.html in Resources */,
+				DE9D13A226D0C0250005756D /* AppIcon.X.icns in Resources */,
 				DE9D629A26A0521E008C6E94 /* InfoPlist.strings in Resources */,
 				DE35153F267C81B70090A03B /* Localizable.strings in Resources */,
 			);
@@ -176,7 +184,7 @@
 			files = (
 				DE7FE1122678C2D50002356A /* PreferenceSheet.swift in Sources */,
 				DE221037269CAA0200EF399F /* MinefieldController+ObjC.swift in Sources */,
-				DE0603482673247C00E23129 /* SmileyButton.swift in Sources */,
+				DE0603482673247C00E23129 /* ToolbarButtons.swift in Sources */,
 				DECDCCEA2667479000519DB1 /* Minefield.swift in Sources */,
 				DE62FA4C2666807C00C17CD8 /* Mound.swift in Sources */,
 				DE496EF72671D0FD000FDABC /* Animation.swift in Sources */,
@@ -344,18 +352,17 @@
 		DE62FA572666807E00C17CD8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 10;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -365,18 +372,17 @@
 		DE62FA582666807E00C17CD8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 10;
 				INFOPLIST_FILE = Minesweeper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = red.argon.minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

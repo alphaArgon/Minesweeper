@@ -4,23 +4,12 @@ protocol MoundDelegate: class {
     func moundCanAct(_: Mound) -> Bool
     func moundDidDig(_: Mound)
     func moundNeedDigVicinities(_: Mound)
-    func moundMineStyle(_: Mound) -> Mound.MineStyle
     func mound(_: Mound, shouldFlagAs mark: Mound.Flag) -> Bool
+    var mineStyle: Minefield.MineStyle {get}
+    var fieldStyle: Minefield.FieldStyle {get}
 }
 
 class Mound: NSView {
-    enum MineStyle: Int {
-        case bomb
-        case flower
-        
-        var description: String {
-            switch self {
-            case .bomb:     return "mine-style-bomb".localized
-            case .flower:   return "mine-style-flower".localized
-            }
-        }
-    }
-    
     enum Flag: Int, Equatable {
         static let count = 3
         
@@ -51,11 +40,17 @@ class Mound: NSView {
         }
     }
     
+    struct EdgingMask: OptionSet {
+        let rawValue: Int
+        
+        static let top = EdgingMask(rawValue: 1)
+        static let left = EdgingMask(rawValue: 2)
+        static let bottom = EdgingMask(rawValue: 4)
+        static let right = EdgingMask(rawValue: 8)
+    }
+    
     static let mineImage: NSImage = NSImage(named: "Mine")!
     static let flowerImage: NSImage = NSImage(named: "Flower")!
-    static let coveredBezel: NSImage = NSImage(named: "MoundCovered")!
-    static let pressedBezel: NSImage = NSImage(named: "MoundPressed")!
-    static let exposedBezel: NSImage = NSImage(named: "MoundExposed")!
     static let certainFlagGlyph: NSImage = NSImage(named: "FlagCertain")!
     static let uncertainFlagGlyph: NSImage = NSImage(named: "FlagUncertain")!
     
@@ -76,22 +71,22 @@ class Mound: NSView {
                     .accentRed, .systemOrange, .accentGold, .accentPurple, .systemYellow, .accentGreen, .accentBlue, .textColor]
         } else if hue < 0.1 {
             return [hue < 0.055 ? .accentCopper : .accentOrange,
-                    .systemOrange, .systemYellow, .accentRed, .accentGold, .accentPurple, .accentGreen, .accentBlue, .textColor]
+                    .accentOrange, .systemYellow, .accentRed, .accentGold, .accentPurple, .accentGreen, .accentBlue, .textColor]
         } else if hue < 0.2 {
             return [.accentYellow,
-                    .systemYellow, .systemOrange, .accentGold, .accentRed, .accentGreen, .accentBlue, .accentPurple, .textColor]
+                    .systemYellow, .accentOrange, .accentGold, .accentRed, .accentGreen, .accentBlue, .accentPurple, .textColor]
         } else if hue < 0.5 {
             return [greenComponent < 0.5 ? .accentConifer : .accentGreen,
-                    .accentGreen, .systemYellow, .accentBlue, .systemOrange, .accentCyan, .accentGold, .accentRed, .textColor]
-        } else if hue < 0.6 {
+                    .accentGreen, .systemYellow, .accentBlue, .accentOrange, .accentCyan, .accentGold, .accentRed, .textColor]
+        } else if hue < 0.62 {
             return [blueComponent < 0.5 ? .accentOcean : .accentBlue,
-                    .accentBlue, .accentGreen, .accentPurple, .systemYellow, .systemOrange, .accentGold, .accentRed, .textColor]
+                    .accentBlue, .accentGreen, .accentPurple, .systemYellow, .accentOrange, .accentGold, .accentRed, .textColor]
         } else if hue < 0.7 {
             return [blueComponent < 0.5 ? .accentIndigo : .accentVoilet,
-                    .accentVoilet, .accentPurple, .accentGreen, .accentRed, .systemYellow, .systemOrange, .accentGold, .textColor]
+                    .accentVoilet, .accentPurple, .accentGreen, .accentRed, .systemYellow, .accentOrange, .accentGold, .textColor]
         } else if hue < 0.85 {
             return [.accentPurple,
-                    .accentPurple, .accentBlue, .accentRed, .systemOrange, .systemYellow, .accentCyan, .accentOrange, .textColor]
+                    .accentPurple, .accentBlue, .accentRed, .accentOrange, .systemYellow, .accentCyan, .accentOrange, .textColor]
         } else {
             return [.accentPink,
                     .accentPink, .accentPurple, .accentVoilet, .accentGold, .accentRed, .accentOrange, .accentYellow, .textColor]
@@ -99,90 +94,122 @@ class Mound: NSView {
     }
     
     private static var areCachesInvalid: Bool = true
-    @objc static func invalidCaches() {areCachesInvalid = true} // will be called by a minefield
+    static func invalidCaches() {areCachesInvalid = true} // will be called by a minefield
     
-    static func buildCaches() {
+    static func buildCaches(fieldStyle: Minefield.FieldStyle) {
         areCachesInvalid = false
         
         let accentTester: NSColor
         if #available(OSX 10.14, *) {
             accentTester = NSColor.controlAccentColor
         } else {
-            accentTester = NSColor.selectedTextBackgroundColor
+            accentTester = NSColor.alternateSelectedControlColor
         }
         
         let hintColors = getHintColors(ofAccent: NSColor(cgColor: accentTester.cgColor)!)
-        _hintImages = []
+        _hintImages[fieldStyle] = []
         
         for hint in 1...8 {
             let image = NSImage(named: "Hint\(hint)")!.copy() as! NSImage
             image.lockFocus()
             let rect = NSRect(origin: .zero, size: image.size)
-            hintColors[hint].blended(withFraction: 0.3, of: .labelColor)?.set()
+            hintColors[hint].blended(withFraction: NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? 0.5 : 0.3,
+                                     of: .labelColor)?.setFill()
             rect.fill(using: .sourceIn)
             image.unlockFocus()
-            _hintImages.append(image)
+            _hintImages[fieldStyle]!.append(image)
         }
         
-        let backgroundColor: NSColor
-        
-        if #available(OSX 10.14, *),
-           NSAppearance.current.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua {
-            backgroundColor = hintColors[0].blended(withFraction: 0.31, of: NSColor.darkGray)!
-        } else {
-            backgroundColor = hintColors[0].blended(withFraction: 0.12, of: NSColor.lightGray)!
-        }
-        
-        var blends: [CGImage?] = []
         let bezels: [(NSImage, NSColor, NSCompositingOperation)]
-        if #available(OSX 10.16, *) {
-            bezels = [(coveredBezel, backgroundColor, .overlay),
-                      (pressedBezel, backgroundColor, .overlay),
-                      (exposedBezel, hintColors[0].blended(withFraction: 0.68, of: .gray)!, .luminosity)];
+        _cgBezels[fieldStyle] = []
+        
+        if fieldStyle == .sheet {
+            if NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+                let mask = NSImage(size: NSSize(width: 20, height: 20))
+                mask.lockFocus()
+                let backgroundColor = NSColor(red: hintColors[0].redComponent - 0.2,
+                                              green: hintColors[0].greenComponent - 0.2,
+                                              blue: hintColors[0].blueComponent - 0.2,
+                                              alpha: 1)
+                backgroundColor.setFill()
+                NSBezierPath(roundedRect: NSRect(origin: .zero, size: mask.size).insetBy(dx: 1, dy: 1),
+                             xRadius: 1.5, yRadius: 1.5).fill()
+                mask.unlockFocus()
+                
+                bezels = [(mask, .white, .sourceIn),
+                          (mask, backgroundColor.blended(withFraction: 0.25, of: .black)!.withAlphaComponent(0.75), .destinationIn),
+                          (mask, backgroundColor.withAlphaComponent(0.25), .destinationIn)]
+                
+            } else {
+                let mask = NSImage(size: NSSize(width: 20, height: 20))
+                mask.lockFocus()
+                
+                NSGradient(colors: [hintColors[0].blended(withFraction: 0.04, of: .white)!,
+                                    hintColors[0].blended(withFraction: 0.03, of: .black)!])?
+                    .draw(in: NSBezierPath(roundedRect: NSRect(origin: .zero, size: mask.size).insetBy(dx: 1, dy: 1),
+                                           xRadius: 1.5, yRadius: 1.5),
+                          angle: -90)
+                
+                mask.unlockFocus()
+                
+                bezels = [(mask, NSColor(white: 1, alpha: 0.8), .sourceIn),
+                          (mask, hintColors[0].blended(withFraction: 0.25, of: .darkGray)!.withAlphaComponent(0.75), .destinationIn),
+                          (mask, hintColors[0].withAlphaComponent(0.25), .destinationIn)]
+            }
         } else {
-            bezels = [(coveredBezel, backgroundColor, .hardLight),
-                      (pressedBezel, backgroundColor, .hardLight),
-                      (exposedBezel, hintColors[0].blended(withFraction: 0.75, of: .gray)!, .luminosity)];
+            var backgroundColor: NSColor
+            
+            if #available(OSX 10.14, *),
+               NSAppearance.current.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua {
+                backgroundColor = hintColors[0].blended(withFraction: 0.31, of: NSColor.darkGray)!
+            } else {
+                backgroundColor = hintColors[0].blended(withFraction: 0.12, of: NSColor.lightGray)!
+            }
+            
+            if NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+                backgroundColor = NSColor(hue: backgroundColor.hueComponent,
+                                          saturation: backgroundColor.saturationComponent + 0.2,
+                                          brightness: backgroundColor.brightnessComponent - 0.2,
+                                          alpha: 1)
+            }
+            
+            bezels = [(NSImage(named: "MoundCovered")!, backgroundColor, .hardLight),
+                      (NSImage(named: "MoundPressed")!, backgroundColor, .hardLight),
+                      (NSImage(named: "MoundExposed")!, hintColors[0].blended(withFraction: 0.75, of: .gray)!, .luminosity)];
         }
         
-        for (image, color, blendMode) in bezels {
+        for i in 0..<3 {
+            let (image, color, blendMode) = bezels[i]
             let blend = NSImage(size: image.size)
             blend.lockFocus()
             color.setFill()
             NSRect(origin: .zero, size: image.size).fill()
             image.draw(at: .zero, from: .zero, operation: blendMode, fraction: 1)
             blend.unlockFocus()
-            blends.append(blend.cgImage)
+            _cgBezels[fieldStyle]!.append(blend.cgImage)
         }
-        
-        _coveredCGBezel = blends[0]
-        _pressedCGBezel = blends[1]
-        _exposedCGBezel = blends[2]
     }
     
-    private static var _exposedCGBezel: CGImage?
-    private static var _coveredCGBezel: CGImage?
-    private static var _pressedCGBezel: CGImage?
-    private static var _hintImages: [NSImage] = []
+    private static var _cgBezels: [Minefield.FieldStyle: [CGImage?]] = [:]
+    private static var _hintImages: [Minefield.FieldStyle: [NSImage]] = [:]
     
-    static var coveredCGBezel: CGImage? {
-        if areCachesInvalid {buildCaches()}
-        return _coveredCGBezel
+    static func coveredCGBezel(fieldStyle: Minefield.FieldStyle) -> CGImage? {
+        if areCachesInvalid {buildCaches(fieldStyle: fieldStyle)}
+        return _cgBezels[fieldStyle]![0]
     }
-    static var pressedCGBezel: CGImage? {
-        if areCachesInvalid {buildCaches()}
-        return _pressedCGBezel
+    static func pressedCGBezel(fieldStyle: Minefield.FieldStyle) -> CGImage? {
+        if areCachesInvalid {buildCaches(fieldStyle: fieldStyle)}
+        return _cgBezels[fieldStyle]![1]
     }
-    static var exposedCGBezel: CGImage? {
-        if areCachesInvalid {buildCaches()}
-        return _exposedCGBezel
+    static func exposedCGBezel(fieldStyle: Minefield.FieldStyle) -> CGImage? {
+        if areCachesInvalid {buildCaches(fieldStyle: fieldStyle)}
+        return _cgBezels[fieldStyle]![2]
     }
     
-    static var hintImages: [NSImage] {
-        if areCachesInvalid {buildCaches()}
-        return _hintImages
+    static func hintImages(fieldStyle: Minefield.FieldStyle) -> [NSImage] {
+        if areCachesInvalid {buildCaches(fieldStyle: fieldStyle)}
+        return _hintImages[fieldStyle]!
     }
-    
     
     weak var delegate: MoundDelegate?
     
@@ -211,43 +238,32 @@ class Mound: NSView {
     var mineOpacity: CGFloat = 1
     var flashes: Bool = false
     
-    var bezelInsets: NSEdgeInsets = NSEdgeInsets() {
-        didSet {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            bezelLayer.frame = layer!.bounds.insetBy(bezelInsets)
-            CATransaction.commit()
-        }
-    }
-
+    var edgingMask: EdgingMask = []
+    
+    override var allowsVibrancy: Bool {state == .exposed}
+    
     let bezelLayer: CALayer = {
         let layer = CALayer()
         layer.contentsGravity = .resize
         layer.contentsCenter = CGRect(x: 0, y: 0, width: 1, height: 1).insetBy(dx: 0.1, dy: 0.1)
         return layer
     }()
-
+    
     let glyphLayer: CALayer = {
         let layer = CALayer()
         layer.contentsGravity = .center
         return layer
     }()
-
+    
     let mineLayer: CALayer = {
         let layer = CALayer()
         layer.contentsGravity = .center
         return layer
     }()
-
-    let flashLayer: CALayer = {
-        let layer = CALayer()
-        layer.compositingFilter = "softLightBlendMode"
-        return layer
-    }()
     
     override var isOpaque: Bool {true}
     
-    override var wantsUpdateLayer: Bool {wantsLayer}
+    override var wantsUpdateLayer: Bool {true}
     
     override func layout() {
         super.layout()
@@ -257,43 +273,49 @@ class Mound: NSView {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         
-        var sublayers = [glyphLayer, flashLayer, mineLayer]
+        layer.sublayers = [bezelLayer, glyphLayer, mineLayer]
         
-        for sublayer in sublayers {
+        for sublayer in layer.sublayers! {
             sublayer.frame = layer.bounds
             sublayer.contentsScale = layer.contentsScale
         }
         
-        bezelLayer.frame = layer.bounds.insetBy(bezelInsets)
-        bezelLayer.contentsScale = layer.contentsScale
-        
-        sublayers.insert(bezelLayer, at: 0)
-        
-        layer.sublayers = sublayers
-        
         CATransaction.commit()
     }
-
+    
     override func updateLayer() {
         super.updateLayer()
 
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         
-        if state == .exposed {
-            bezelLayer.contents = Self.exposedCGBezel
-            bezelLayer.compositingFilter = nil
-        } else {
-            layer?.backgroundColor = CGColor(gray: 0.43 + 0.1 * luminosity, alpha: 1)
-            bezelLayer.contents = isPressed ? Self.pressedCGBezel : Self.coveredCGBezel
-            bezelLayer.compositingFilter = "hardLightBlendMode"
+        let fieldStyle = delegate?.fieldStyle ?? .solid
+        
+        if fieldStyle == .solid {
+            bezelLayer.frame = layer!.bounds.insetBy(NSEdgeInsets(
+                top: state == .exposed && edgingMask.contains(.top) ? -0.5 : 0,
+                left: edgingMask.contains(.left) ? -1 : 0,
+                bottom: edgingMask.contains(.bottom) ? -1 : 0,
+                right: edgingMask.contains(.right) ? -1 : 0))
         }
-
+        
+        if state == .exposed {
+            bezelLayer.contents = Self.exposedCGBezel(fieldStyle: fieldStyle)
+            bezelLayer.compositingFilter = nil
+            layer!.backgroundColor = nil
+        } else {
+            bezelLayer.contents = isPressed ? Self.pressedCGBezel(fieldStyle: fieldStyle) : Self.coveredCGBezel(fieldStyle: fieldStyle)
+            if fieldStyle == .solid {
+                bezelLayer.compositingFilter = "hardLightBlendMode"
+                layer!.backgroundColor = CGColor(gray: 0.43 + 0.1 * luminosity, alpha: 1)
+            }
+        }
+        
         var glyph: NSImage?
         switch state {
         case .exposed:
             guard hint > 0 else {break}
-            glyph =  Self.hintImages[hint - 1]
+            glyph =  Self.hintImages(fieldStyle: fieldStyle)[hint - 1]
 
         case .covered(withFlag: .certain):
             glyph = Self.certainFlagGlyph
@@ -303,18 +325,15 @@ class Mound: NSView {
         default:
             break
         }
-
+        
         glyphLayer.contents = glyph
-
+        
         if hint == -2 {
             if flashes {
-                flashLayer.isHidden = false
-                flashLayer.backgroundColor = CGColor(gray: 1, alpha: (1 - cos(2 * .pi * mineOpacity)) / 2)
-            } else {
-                flashLayer.isHidden = true
+                mineLayer.backgroundColor = CGColor(gray: 1, alpha: (1 - cos(2 * .pi * mineOpacity)) / 2)
             }
             mineLayer.isHidden = false
-            switch delegate?.moundMineStyle(self) ?? .bomb {
+            switch delegate?.mineStyle ?? .bomb {
             case .bomb: mineLayer.contents = Self.mineImage
             case .flower: mineLayer.contents = Self.flowerImage
             }
@@ -323,7 +342,7 @@ class Mound: NSView {
         } else {
             mineLayer.isHidden = true
         }
-
+        
         CATransaction.commit()
     }
     
@@ -335,7 +354,7 @@ class Mound: NSView {
     }
     
     func showMine(animates: Bool, flashes: Bool = false, duration: TimeInterval = 0.75) {
-        if showsMine {return}
+        if showsMine {return mineOpacity = 1}
         
         showsMine = true
         if animates {
@@ -350,9 +369,11 @@ class Mound: NSView {
     func animateMineOpacity(duration: TimeInterval, startTime: TimeInterval) {
         if mineOpacity < 1 {
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.015) {
-                self.mineOpacity = CGFloat(((Date().timeIntervalSince1970 - startTime)) / duration)
                 self.setNeedsDisplay(self.bounds)
-                self.animateMineOpacity(duration: duration, startTime: startTime)
+                if self.mineOpacity < 1 {
+                    self.mineOpacity = CGFloat(((Date().timeIntervalSince1970 - startTime)) / duration)
+                    self.animateMineOpacity(duration: duration, startTime: startTime)
+                }
             }
         } else {
             mineOpacity = 1

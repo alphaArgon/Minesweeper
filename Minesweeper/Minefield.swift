@@ -6,6 +6,23 @@ protocol MinefieldDelegate: class {
 }
 
 class Minefield: NSView {
+    enum MineStyle: Int {
+        case bomb
+        case flower
+        
+        var description: String {
+            switch self {
+            case .bomb: return "mine-style-bomb".localized
+            case .flower: return "mine-style-flower".localized
+            }
+        }
+    }
+    
+    enum FieldStyle: Int {
+        case solid
+        case sheet
+    }
+    
     struct Difficulty: Equatable {
         var numberOfColumns: Int
         var numberOfRows: Int
@@ -31,9 +48,9 @@ class Minefield: NSView {
         
         init?(tag: Int) {
             switch tag {
-            case 1: self = Self.beginner
-            case 2: self = Self.intermediate
-            case 3: self = Self.advanced
+            case 1: self = .beginner
+            case 2: self = .intermediate
+            case 3: self = .advanced
             default: return nil
             }
         }
@@ -50,10 +67,19 @@ class Minefield: NSView {
     var numberOfMounds: Int {difficulty.numberOfColumns * difficulty.numberOfRows}
     var numberOfMines: Int {difficulty.numberOfMines}
     
-    static let standardMoundSize: CGFloat = 24
-    static let minMoundSize: CGFloat = 21
-    static let maxMoundSize: CGFloat = 36
+    var mineStyle: MineStyle
+    var fieldStyle: FieldStyle
+    
+    var standardMoundSize: CGFloat {fieldStyle == .sheet ? 26 : 24}
+    var minMoundSize: CGFloat {fieldStyle == .sheet ? 24 : 22}
+    var maxMoundSize: CGFloat {36}
     var moundSize: CGFloat
+    
+    var contentInsets: NSEdgeInsets {
+        fieldStyle == .sheet
+            ? NSEdgeInsets(top: -1, left: 1, bottom: 1, right: 1)
+            : NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+    }
     
     var hasDeployed: Bool = false
     
@@ -82,18 +108,25 @@ class Minefield: NSView {
         }
     }
     
-    init(moundSize: CGFloat?, difficulty: Difficulty?, moundDelegate: MoundDelegate) {
-        self.moundSize = round(moundSize ?? Self.standardMoundSize)
+    init(mineStyle: MineStyle?, fieldStyle: FieldStyle?, moundSize: CGFloat?, difficulty: Difficulty?, moundDelegate: MoundDelegate) {
+        if fieldStyle != nil {
+            self.fieldStyle = fieldStyle!
+        } else if #available(OSX 10.16, *) {
+            self.fieldStyle = .sheet
+        } else {
+            self.fieldStyle = .solid
+        }
+        
+        self.mineStyle = mineStyle ?? .bomb
+        self.moundSize = 0
         self.difficulty = difficulty ?? .beginner
         self.moundDelegate = moundDelegate
-        super.init(frame: NSRect(
-            x: 0, y: 0,
-            width: CGFloat(self.difficulty.numberOfColumns) * self.moundSize,
-            height: CGFloat(self.difficulty.numberOfRows) * self.moundSize
-        ))
+        super.init(frame: .zero)
+        self.moundSize = max(minMoundSize, round(moundSize ?? standardMoundSize))
         
         wantsLayer = true
         layerContentsRedrawPolicy = .onSetNeedsDisplay
+        
         moundMatrix = MoundMatrix(
             numberOfColumns: self.difficulty.numberOfColumns,
             numberOfRows: self.difficulty.numberOfRows,
@@ -105,16 +138,13 @@ class Minefield: NSView {
     
     override func viewDidChangeEffectiveAppearance() {
         Mound.invalidCaches()
+        setWindowBackground()
     }
     
     func layoutMounds() {
         moundMatrix.forEach {mound, index in
             moundMatrix(moundMatrix, update: mound, at: index)
         }
-    }
-    
-    func setWindowRatio() {
-        window!.contentAspectRatio = frame.size
     }
     
     func reuse(undeploys: Bool, extraAction: ((Mound) -> Void)? = nil) {
@@ -136,6 +166,27 @@ class Minefield: NSView {
         }
     }
     
+    func fittingSize(numberOfColumns: Int? = nil, numberOfRows: Int? = nil, moundSize: CGFloat? = nil) -> NSSize {
+        let theNumberOfColumns = numberOfColumns ?? self.numberOfColumns
+        let theNumberOfRows = numberOfRows ?? self.numberOfRows
+        let theMoundSize = moundSize ?? self.moundSize
+        return NSSize(
+            width: CGFloat(theNumberOfColumns) * theMoundSize + contentInsets.left + contentInsets.right,
+            height: CGFloat(theNumberOfRows) * theMoundSize + contentInsets.top + contentInsets.bottom
+        )
+    }
+    
+    func moundSize(frame: NSRect? = nil, numberOfColumns: Int? = nil, numberOfRows: Int? = nil, rounds: Bool = true) -> CGFloat {
+        let theFrame = frame ?? self.frame
+        let theNumberOfColumns = numberOfColumns ?? self.numberOfColumns
+        let moundSize = (theFrame.width - contentInsets.left - contentInsets.right) / CGFloat(theNumberOfColumns)
+        if rounds {
+            return round(moundSize)
+        } else {
+            return moundSize
+        }
+    }
+    
     func resizeToMatchDifficulty() {
         if moundMatrix.numberOfColumns == numberOfColumns, moundMatrix.numberOfRows == numberOfRows {
             return reuse(undeploys: true)
@@ -144,10 +195,7 @@ class Minefield: NSView {
         hasDeployed = false
         
         let oldContentSize = frame.size
-        let newContentSize = NSSize(
-            width: CGFloat(numberOfColumns) * moundSize,
-            height: CGFloat(numberOfRows) * moundSize
-        )
+        let newContentSize = fittingSize()
         
         let newWindowFrameSize = window!.frameRect(forContentRect: NSRect(origin: .zero, size: newContentSize)).size
         let newWindowFrame = NSRect(
@@ -215,7 +263,7 @@ class Minefield: NSView {
     
     private func beginAnimationWindow(
         from centerMound: Mound, animationViewType AnimationView: AnimationView.Type,
-        subanimationWillStart: @escaping (Mound) -> Void,
+        subanimationWillStart: @escaping (Mound, TimeInterval) -> Void,
         delaysAfterFirstSubanimation: Bool,
         then callback: @escaping () -> Void
     ) {
@@ -254,7 +302,7 @@ class Minefield: NSView {
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
                 guard animationSignature == self.animationSignature else {return}
                 
-                subanimationWillStart(mound)
+                subanimationWillStart(mound, animationSignature)
                 
                 let animationView = AnimationView.init(
                     center: NSPoint(x: mound.frame.midX, y: mound.frame.midY),
@@ -279,7 +327,7 @@ class Minefield: NSView {
         beginAnimationWindow(
             from: centerMound,
             animationViewType: ShineView.self,
-            subanimationWillStart: {mound in
+            subanimationWillStart: {mound, _ in
                 mound.showMine(animates: true, flashes: true)
             },
             delaysAfterFirstSubanimation: false,
@@ -293,9 +341,11 @@ class Minefield: NSView {
         beginAnimationWindow(
             from: centerMound,
             animationViewType: BoomView.self,
-            subanimationWillStart: {mound in
+            subanimationWillStart: {mound, animationSignature in
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + (mound == centerMound ? 0 : delay)) {
-                    mound.showMine(animates: false)
+                    if animationSignature == self.animationSignature {
+                        mound.showMine(animates: false)
+                    }
                 }
             },
             delaysAfterFirstSubanimation: true,
@@ -309,9 +359,11 @@ class Minefield: NSView {
         beginAnimationWindow(
             from: centerMound,
             animationViewType: SpinView.self,
-            subanimationWillStart: {mound in
+            subanimationWillStart: {mound, animationSignature  in
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
-                    mound.showMine(animates: true, duration: 0.25)
+                    if animationSignature == self.animationSignature {
+                        mound.showMine(animates: true, duration: 0.25)
+                    }
                 }
             },
             delaysAfterFirstSubanimation: true,
@@ -319,11 +371,18 @@ class Minefield: NSView {
         )
     }
     
-    func stopAllAnimationsIfNeeded() {
-        window?.childWindows?.forEach {window in
-            if window is AnimationWindow {
-                closeAnimationWindow(window as! AnimationWindow)
+    @discardableResult
+    func stopAllAnimationsIfNeeded() -> Bool {
+        if let childWindows = window?.childWindows, childWindows.count > 0 {
+            childWindows.forEach {window in
+                if window is AnimationWindow {
+                    closeAnimationWindow(window as! AnimationWindow)
+                }
             }
+            return true
+            
+        } else {
+            return false
         }
     }
     
@@ -331,9 +390,7 @@ class Minefield: NSView {
         animationSignature = Date().timeIntervalSince1970
         
         moundMatrix.forEach {mound in
-            if mound.hasMine, !mound.showsMine {
-                mound.showsMine = true
-            }
+            if mound.hasMine {mound.showMine(animates: false)}
         }
         
         animationWindow.orderOut(nil)
@@ -357,16 +414,16 @@ extension Minefield: MoundMatrixDelegate {
     
     func moundMatrix(_ moundMatrix: MoundMatrix, update mound: Mound, at index: MoundMatrix.Index) {
         mound.luminosity = CGFloat(index.row) / CGFloat(numberOfRows - 1) * 2 - 1
-        mound.bezelInsets = NSEdgeInsets(
-            top: 0,
-            left: index.column == 0 ? -1 : 0,
-            bottom: index.row == 0 ? -1 : 0,
-            right: index.column == numberOfColumns - 1 ? -1 : 0
+        mound.edgingMask = Mound.EdgingMask(rawValue:
+            (index.row == numberOfRows - 1 ? Mound.EdgingMask.top.rawValue : 0) |
+            (index.column == 0 ? Mound.EdgingMask.left.rawValue : 0) |
+            (index.row == 0 ? Mound.EdgingMask.bottom.rawValue : 0) |
+            (index.column == numberOfColumns - 1 ? Mound.EdgingMask.right.rawValue : 0)
         )
         
         mound.frame = NSRect(
-            x: CGFloat(index.column) * moundSize,
-            y: CGFloat(index.row) * moundSize,
+            x: CGFloat(index.column) * moundSize + contentInsets.left,
+            y: CGFloat(index.row) * moundSize + contentInsets.bottom,
             width: moundSize, height: moundSize
         )
     }
@@ -384,43 +441,66 @@ extension Minefield: CAAnimationDelegate {
 }
 
 extension Minefield: NSWindowDelegate {
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
+    func setWindowRatio() {
+        window!.contentAspectRatio = NSSize(width: numberOfColumns, height: numberOfRows)
+    }
+    
+    func setWindowBackground() {
+        if fieldStyle == .sheet,
+           let visualEffectView = window!.contentView!.superview!.subviews[0] as? NSVisualEffectView {
+            visualEffectView.blendingMode = .behindWindow
+            visualEffectView.material = .sidebar
+            visualEffectView.state = .followsWindowActiveState
+        }
+    }
+    
+    func windowWillAppear(_ window: NSWindow) {
+        let newFrameSize = window.frameRect(forContentRect: NSRect(origin: window.frame.origin, size: fittingSize())).size
+        window.setFrame(NSRect(origin: NSPoint(x: window.frame.minX + (window.frame.width - newFrameSize.width) / 2,
+                                               y: window.frame.minY + (window.frame.height - newFrameSize.height)),
+                               size: newFrameSize), display: false)
+        setWindowBackground()
         setWindowRatio()
+        
+        if fieldStyle == .sheet {
+            layer!.mask = CALayer()
+            if #available(OSX 10.16, *) {
+                layer!.mask!.cornerRadius = 8.75
+                layer!.mask!.cornerCurve = .continuous
+            } else {
+                layer!.mask!.cornerRadius = 4
+            }
+            layer!.mask!.backgroundColor = .black
+            layer!.mask!.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer!.mask!.frame = layer!.bounds.insetBy(NSEdgeInsets(top: -layer!.mask!.cornerRadius,
+                                                                    left: contentInsets.left + 1,
+                                                                    bottom: contentInsets.bottom + 1,
+                                                                    right: contentInsets.right + 1))
+        }
     }
     
     func windowWillUseStandardFrame(_ window: NSWindow, defaultFrame newFrame: NSRect) -> NSRect {
-        let contentRect = window.contentRect(forFrameRect: NSRect(
-            x: 0, y: 0,
-            width: CGFloat(numberOfColumns) * Self.standardMoundSize,
-            height: -CGFloat(numberOfRows) * Self.standardMoundSize
-        ))
+        let fittingSize = self.fittingSize(moundSize: standardMoundSize)
+        let contentRect = window.contentRect(forFrameRect: NSRect(x: 0, y: 0, width: fittingSize.width, height: -fittingSize.height))
         
-        return NSRect(
-            x: window.frame.minX,
-            y: window.frame.maxY,
-            width: contentRect.width,
-            height: -contentRect.height
-        ).standardized
+        return NSRect(x: window.frame.minX,
+                      y: window.frame.maxY,
+                      width: contentRect.width,
+                      height: -contentRect.height).standardized
     }
     
     func windowWillResize(_ window: NSWindow, to frameSize: NSSize) -> NSSize {
         guard !isAnimatingResizing else {return frameSize}
         
         let contentRect = window.contentRect(forFrameRect: NSRect(origin: .zero, size: frameSize))
-        let moundSize = min(Self.maxMoundSize, max(Self.minMoundSize,
-            round(contentRect.width / CGFloat(numberOfColumns))
-        ))
+        let moundSize = min(maxMoundSize, max(minMoundSize, self.moundSize(frame: contentRect)))
         
-        return window.frameRect(forContentRect: NSRect(origin: .zero, size: NSSize(
-            width: CGFloat(numberOfColumns) * moundSize,
-            height: CGFloat(numberOfRows) * moundSize)
-        )).size
+        return window.frameRect(forContentRect: NSRect(origin: .zero, size: fittingSize(moundSize: moundSize))).size
     }
     
     func windowDidResize(_: Notification) {
         guard !isAnimatingResizing else {return}
-        moundSize = frame.width / CGFloat(numberOfColumns)
+        moundSize = moundSize(rounds: false)
         layoutMounds()
         stopAllAnimationsIfNeeded()
     }

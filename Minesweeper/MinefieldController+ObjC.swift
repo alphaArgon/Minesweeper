@@ -2,7 +2,9 @@ import AppKit
 
 extension MinefieldController {
     @objc func relive(_: Any?) {
-        relive(redeploys: isAlive || sadMacBehavior == .redeploy)
+        if !minefield.stopAllAnimationsIfNeeded() {
+            relive(redeploys: isAlive || sadMacBehavior == .redeploy)
+        }
     }
     
     @objc func replay(_: Any?) {
@@ -46,8 +48,11 @@ extension MinefieldController {
         
         let preferenceSheet = PreferenceSheet(difficulty: minefield.difficulty, mineStyle: mineStyle, sadMacBehavior: sadMacBehavior, isBattling: isBattling)
         
-        minefield.window!.beginSheet(preferenceSheet) {response in
-            guard response == .OK else {return}
+        minefield.window!.beginSheet(preferenceSheet) {_ in
+            self.sadMacBehavior = preferenceSheet.sadMacBehavior
+            self.minefield.mineStyle = preferenceSheet.mineStyle
+            self.setUserDefaults(for: [.sadMacBehavior, .mineStyle])
+            self.setSadType()
             
             if self.isBattling {
                 if preferenceSheet.difficulty != self.minefield.difficulty {
@@ -58,12 +63,8 @@ extension MinefieldController {
                     }
                 }
             } else {
-                self.relive(redeploys: true, difficulty: preferenceSheet.difficulty)
+                self.relive(redeploys: self.sadMacBehavior != .replay, difficulty: preferenceSheet.difficulty)
             }
-            
-            self.sadMacBehavior = preferenceSheet.sadMacBehavior
-            self.mineStyle = preferenceSheet.mineStyle
-            self.setUserDefaults(for: [.sadMacBehavior, .mineStyle])
         }
     }
 }

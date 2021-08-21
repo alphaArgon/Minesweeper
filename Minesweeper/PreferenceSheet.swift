@@ -5,7 +5,7 @@ class PreferenceSheet: NSWindow {
     
     var givesUpToApplyDifficulty: Bool = false
     var difficulty: Minefield.Difficulty
-    var mineStyle: Mound.MineStyle
+    var mineStyle: Minefield.MineStyle
     var sadMacBehavior: MinefieldController.SadMacBehavior
     var isBattling: Bool
     
@@ -17,7 +17,7 @@ class PreferenceSheet: NSWindow {
     let customRadioButton = NSButton(radioButtonWithTitle: "custom".localized, target: nil, action: #selector(switchDifficulty(_:)))
     let helpLabel = NSTextField(labelWithString: "")
     let sizeLabel = NSTextField(labelWithString: "size-label".localized)
-    let multiplyLabel = NSTextField(labelWithString: " × ")
+    let multiplyLabel = NSTextField(labelWithString: "×")
     let mineLabel = NSTextField(labelWithString: "mine-label".localized)
     let widthInput = IntegerTextField()
     let heightInput = IntegerTextField()
@@ -25,10 +25,9 @@ class PreferenceSheet: NSWindow {
     let applyCheckbox = NSButton(checkboxWithTitle: "apply-checkbox".localized, target: nil, action: nil)
     let mineStylePopUp = NSPopUpButton(frame: .zero, pullsDown: false)
     let sadMacPopUp = NSPopUpButton(frame: .zero, pullsDown: false)
-    let okButton = NSButton(title: "alert-ok".localized, target: nil, action: nil)
-    let cancelButton = NSButton(title: "alert-cancel".localized, target: nil, action: nil)
+    let okButton = NSButton(title: "alert-done".localized, target: nil, action: nil)
     
-    init(difficulty: Minefield.Difficulty, mineStyle: Mound.MineStyle, sadMacBehavior: MinefieldController.SadMacBehavior, isBattling: Bool) {
+    init(difficulty: Minefield.Difficulty, mineStyle: Minefield.MineStyle, sadMacBehavior: MinefieldController.SadMacBehavior, isBattling: Bool) {
         self.originDifficulty = difficulty
         self.difficulty = difficulty
         self.mineStyle = mineStyle
@@ -77,10 +76,7 @@ class PreferenceSheet: NSWindow {
                 NSFontDescriptor.FeatureKey.typeIdentifier: kCaseSensitiveLayoutType,
                 NSFontDescriptor.FeatureKey.selectorIdentifier: kCaseSensitiveLayoutOnSelector
             ]]
-        ]), size: NSFont.smallSystemFontSize)
-        
-        multiplyLabel.alignment = .center
-        
+        ]), size: NSFont.smallSystemFontSize)        
         
         switch difficulty {
         case .beginner:
@@ -104,8 +100,8 @@ class PreferenceSheet: NSWindow {
         applyCheckbox.action = #selector(toggleApplyCheckbox(_:))
         
         mineStylePopUp.addItems(withTitles: [
-            Mound.MineStyle(rawValue: 0)!.description,
-            Mound.MineStyle(rawValue: 1)!.description
+            Minefield.MineStyle(rawValue: 0)!.description,
+            Minefield.MineStyle(rawValue: 1)!.description
         ])
         mineStylePopUp.selectItem(at: mineStyle.rawValue)
         mineStylePopUp.target = self
@@ -137,7 +133,7 @@ class PreferenceSheet: NSWindow {
             [difficultyLabel,   beginnerRadioButton,        placeholder(),      customRadioButton,  emptyInput                                  ],
             [placeholder(),     intermediateRadioButton,    placeholder(),      sizeLabel,          widthInput,     multiplyLabel,  heightInput ],
             [placeholder(),     advancedRadioButton,        placeholder(),      mineLabel,          mineInput                                   ],
-            [placeholder(),     placeholder(),              helpLabel,          placeholder()                                                   ],
+            [placeholder(),     placeholder(),              helpLabel,                                                                          ],
             [placeholder(),     applyCheckbox                                                                                                   ],
             [clickSadMacLabel,  sadMacPopUp                                                                                                     ],
             [mineStyleLabel,    mineStylePopUp,                                                                                                 ],
@@ -175,27 +171,21 @@ class PreferenceSheet: NSWindow {
         contentGrid.column(at: 3).xPlacement = .trailing
         contentGrid.column(at: 4).width = NSFont.systemFontSize * 2.5
         contentGrid.column(at: 5).width = NSFont.systemFontSize * 1.5
+        contentGrid.column(at: 5).xPlacement = .center
         contentGrid.column(at: 6).width = NSFont.systemFontSize * 2.5
         
-        okButton.tag = 1
         okButton.target = self
         okButton.action = #selector(collapseSheet(_:))
-        cancelButton.tag = 0
-        cancelButton.target = self
-        cancelButton.action = #selector(collapseSheet(_:))
         
         let buttonSize: CGFloat = 88
         okButton.frame = NSRect(x: okButton.alignmentRectInsets.right - buttonSize - contentMargin, y: contentMargin - okButton.alignmentRectInsets.bottom, width: buttonSize, height: okButton.frame.height)
-        cancelButton.frame = NSRect(x: okButton.frame.minX - buttonSize, y: contentMargin - cancelButton.alignmentRectInsets.bottom, width: buttonSize, height: cancelButton.frame.height)
         okButton.autoresizingMask = [.minXMargin]
-        cancelButton.autoresizingMask = [.minXMargin]
         okButton.keyEquivalent = "\r"
         
         contentGrid.frame = NSRect(origin: NSPoint(x: contentMargin, y: okButton.frame.maxY), size: contentGrid.fittingSize)
         
         contentView!.addSubview(contentGrid)
         contentView!.addSubview(okButton)
-        contentView!.addSubview(cancelButton)
         
         setContentSize(NSSize(width: contentGrid.frame.maxX + contentMargin, height: contentGrid.frame.maxY + contentMargin))
     }
@@ -286,11 +276,11 @@ class PreferenceSheet: NSWindow {
     }
     
     @objc func selectMineStylePopUp(_ sender: NSPopUpButton) {
-        mineStyle = Mound.MineStyle(rawValue: sender.indexOfSelectedItem)!
+        mineStyle = Minefield.MineStyle(rawValue: sender.indexOfSelectedItem)!
     }
     
     @objc func collapseSheet(_ sender: NSButton) {
-        sheetParent!.endSheet(self, returnCode: sender.tag == 1 ? .OK : .cancel)
+        sheetParent!.endSheet(self, returnCode: .OK)
     }
 }
 

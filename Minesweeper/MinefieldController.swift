@@ -9,8 +9,8 @@ class MinefieldController: NSViewController {
         var description: String {
             switch self {
             case .askEveryTime: return "do-nothing".localized
-            case .redeploy:     return "start-a-new-game".localized
-            case .replay:       return "replay".localized
+            case .redeploy: return "start-a-new-game".localized
+            case .replay: return "replay".localized
             }
         }
     }
@@ -18,6 +18,7 @@ class MinefieldController: NSViewController {
     enum UserDefaultsKey: String {
         case moundSize = "MoundSize"
         case mineStyle = "MineStyle"
+        case fieldStyle = "FieldStyle"
         case difficulty = "Difficulty"
         case sadMacBehavior = "SadMacBehavior"
         case states = "States"
@@ -29,22 +30,47 @@ class MinefieldController: NSViewController {
         get {view as! Minefield}
     }
     
-    let timerButton: NSButton = NSButton(title: "00:00", target: nil, action: nil)
-    let counterButton: NSButton = NSButton(title: "00:00", target: nil, action: nil)
+    static let monospacedDigitSystemFont: NSFont = {
+        if #available(OSX 10.16, *) {
+            return NSFont.monospacedDigitSystemFont(ofSize: 15.61, weight: .light)
+        } else {
+            return NSFont.monospacedDigitSystemFont(ofSize: 12.77, weight: .regular)
+        }
+    }()
+    
+    let timerButton: ToolbarButton = {
+        if #available(OSX 10.16, *) {
+            return ImagedButton(widthOfTitle: "", attributes: [.font: monospacedDigitSystemFont])
+        } else {
+            return ImagedButton(widthOfTitle: "00::00", attributes: [.font: monospacedDigitSystemFont])
+        }
+    }()
+    
+    let counterButton: ToolbarButton = {
+        if #available(OSX 10.16, *) {
+            return ImagedButton(widthOfTitle: "", attributes: [.font: monospacedDigitSystemFont])
+        } else {
+            return ImagedButton(widthOfTitle: "00::00", attributes: [.font: monospacedDigitSystemFont])
+        }
+    }()
+    
     let smileyButton: SmileyButton = SmileyButton(target: nil, action: #selector(relive(_:)))
+    
+    let timerToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .timer)
+    let smileyToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .smiley)
+    let counterToolbarItem: NSToolbarItem = NSToolbarItem(itemIdentifier: .counter)
     
     var numberOfCoveredMounds: Int = 0
     var numberOfFlags: Int = 0 {
         didSet {
-            counterButton.title = String(minefield.numberOfMines - numberOfFlags)
+            counterToolbarItem.label = String(minefield.numberOfMines - numberOfFlags)
+            counterButton.title = counterToolbarItem.label
         }
     }
     
     var isBattling: Bool = false
     var isAlive: Bool = true
     var canAct: Bool = true
-    
-    var mineStyle: Mound.MineStyle = .bomb
     var sadMacBehavior: SadMacBehavior = .askEveryTime
     
     var nextDifficultyReminder: String = ""
@@ -92,7 +118,17 @@ class MinefieldController: NSViewController {
     var timeInterval: Int = 0 {
         didSet {
             let seconds = timeInterval % 60
-            timerButton.title = "\(timeInterval / 60):\(seconds > 9 ? "" : "0")\(seconds)"
+            let minutes = timeInterval / 60 % 60
+            let hours = timeInterval / 60 / 60
+            timerToolbarItem.label = hours > 0
+                ? "\(hours):\(minutes > 9 ? "" : "0")\(minutes):\(seconds > 9 ? "" : "0")\(seconds)"
+                : "\(minutes):\(seconds > 9 ? "" : "0")\(seconds)"
+            timerButton.title = timerToolbarItem.label
+            if #available(OSX 10.14, *) {} else {
+                timerToolbarItem.minSize = NSSize(width: max(timerButton.intrinsicContentSize.width,
+                                                             (timerButton as! ImagedButton).width ?? 40),
+                                                  height: timerToolbarItem.minSize.height)
+            }
         }
     }
     
@@ -128,7 +164,13 @@ class MinefieldController: NSViewController {
                 return CGFloat(moundSize)
             }
         case .mineStyle:
-            return Mound.MineStyle(rawValue: UserDefaults.standard.integer(forKey: key.rawValue))
+            if let mineStyle = UserDefaults.standard.object(forKey: key.rawValue) as? Int {
+                return Minefield.MineStyle(rawValue: mineStyle)
+            }
+        case .fieldStyle:
+            if let fieldStyle = UserDefaults.standard.object(forKey: key.rawValue) as? Int {
+                return Minefield.FieldStyle(rawValue: fieldStyle)
+            }
         case .difficulty:
             if let difficulty = UserDefaults.standard.array(forKey: key.rawValue) as? [Int] {
                 return Minefield.Difficulty(rawValues: difficulty)
@@ -143,7 +185,6 @@ class MinefieldController: NSViewController {
         case .timeInterval:
             return UserDefaults.standard.object(forKey: key.rawValue) as? Int
         }
-        
         return nil
     }
     
@@ -153,7 +194,9 @@ class MinefieldController: NSViewController {
             case .moundSize:
                 UserDefaults.standard.set(minefield.moundSize, forKey: key.rawValue)
             case .mineStyle:
-                UserDefaults.standard.set(mineStyle.rawValue, forKey: key.rawValue)
+                UserDefaults.standard.set(minefield.mineStyle.rawValue, forKey: key.rawValue)
+            case .fieldStyle:
+                UserDefaults.standard.set(minefield.fieldStyle.rawValue, forKey: key.rawValue)
             case .difficulty:
                 UserDefaults.standard.set(minefield.difficulty.rawValues, forKey: key.rawValue)
             case .sadMacBehavior:
@@ -170,16 +213,23 @@ class MinefieldController: NSViewController {
         keys.forEach {UserDefaults.standard.removeObject(forKey: $0.rawValue)}
     }
     
+    func setEmotion(_ emotion: SmileyButton.Emotion) {
+        smileyButton.emotion = emotion
+        smileyToolbarItem.label = emotion == .happy ? "Happy Mac" : "Sad Mac"
+    }
+    
+    func setSadType() {
+        smileyButton.sadType = mineStyle == .flower ? .jokingly : .deadly
+    }
+    
     override func loadView() {
         if let sadMacBehavior = userDefault(for: .sadMacBehavior) as? SadMacBehavior {
             self.sadMacBehavior = sadMacBehavior
         }
         
-        if let mineStyle = userDefault(for: .mineStyle) as? Mound.MineStyle {
-            self.mineStyle = mineStyle
-        }
-        
         minefield = Minefield(
+            mineStyle: userDefault(for: .mineStyle) as? Minefield.MineStyle,
+            fieldStyle: userDefault(for: .fieldStyle) as? Minefield.FieldStyle,
             moundSize: userDefault(for: .moundSize) as? CGFloat,
             difficulty: userDefault(for: .difficulty) as? Minefield.Difficulty,
             moundDelegate: self
@@ -187,16 +237,31 @@ class MinefieldController: NSViewController {
         
         minefield.delegate = self
         
-        timerButton.isEnabled = false
-        smileyButton.isEnabled = false
-        counterButton.isEnabled = false
-        (timerButton.cell as! NSButtonCell).imageDimsWhenDisabled = false
-        (smileyButton.cell as! NSButtonCell).imageDimsWhenDisabled = false
-        (counterButton.cell as! NSButtonCell).imageDimsWhenDisabled = false
+        timerToolbarItem.paletteLabel = "timer".localized
+        smileyToolbarItem.paletteLabel = "smiley".localized
+        counterToolbarItem.paletteLabel = "counter".localized
         
-        let monospacedDigitSystemFont = NSFont.monospacedDigitSystemFont(ofSize: -1, weight: .regular)
-        timerButton.font = monospacedDigitSystemFont
-        counterButton.font = monospacedDigitSystemFont
+        for (button, toolbarItem) in [
+            (timerButton, timerToolbarItem),
+            (smileyButton, smileyToolbarItem),
+            (counterButton, counterToolbarItem)
+        ] {
+            button.isDisabled = true
+            if #available(OSX 10.16, *) {
+                button.bezelStyle = .texturedRounded
+            } else if fieldStyle == .solid {
+                button.bezelStyle = .texturedRounded
+            } else {
+                button.isBordered = false
+            }
+            toolbarItem.view = button
+            if #available(OSX 10.14, *) {} else {
+                toolbarItem.minSize = NSSize(width: max(button.intrinsicContentSize.width, 40),
+                                             height: toolbarItem.minSize.height)
+            }
+        }
+
+        setSadType()
         
         if let states = userDefault(for: .states) as? String {
             isBattling = true
@@ -205,6 +270,7 @@ class MinefieldController: NSViewController {
             
             minefield.states = states
             startTimer()
+            setEmotion(.happy)
             
             var numberOfFlags = 0
             minefield.moundMatrix.forEach {mound, _ in
@@ -222,6 +288,7 @@ class MinefieldController: NSViewController {
     
     override func viewWillAppear() {
         minefield.window!.delegate = minefield
+        minefield.windowWillAppear(minefield.window!)
     }
     
     func startTimer() {
@@ -255,8 +322,8 @@ class MinefieldController: NSViewController {
             minefield.reuse(undeploys: redeploys)
         }
         
-        smileyButton.emotion = .happy
-        smileyButton.isEnabled = false
+        setEmotion(.happy)
+        smileyButton.isDisabled = true
         numberOfCoveredMounds = minefield.numberOfMounds
         numberOfFlags = 0
         isAlive = true
@@ -268,13 +335,15 @@ class MinefieldController: NSViewController {
         isBattling = false
         canAct = false
         
+        if self.sadMacBehavior != .askEveryTime {
+            self.smileyButton.isDisabled = false
+        }
+        
         minefield.radiate(from: mound) {
             if self.sadMacBehavior == .askEveryTime {
                 self.succeededAlert.beginSheetModal(for: self.minefield.window!) {_ in
                     self.relive(redeploys: true)
                 }
-            } else {
-                self.smileyButton.isEnabled = true
             }
         }
     }
@@ -284,21 +353,23 @@ class MinefieldController: NSViewController {
         isBattling = false
         isAlive = false
         canAct = false
-        smileyButton.emotion = .sad
+        setEmotion(.sad)
+        
+        if self.sadMacBehavior != .askEveryTime {
+            self.smileyButton.isDisabled = false
+        }
         
         let callback = {
             if self.sadMacBehavior == .askEveryTime {
                 self.failedAlert.beginSheetModal(for: self.minefield.window!) {response in
                     self.relive(redeploys: response == .alertFirstButtonReturn)
                 }
-            } else {
-                self.smileyButton.isEnabled = true
             }
         }
         
         switch mineStyle {
-        case .bomb: minefield.explode(from: mound, then: callback);
-        case .flower: minefield.disturb(from: mound, then: callback);
+        case .bomb: minefield.explode(from: mound, then: callback)
+        case .flower: minefield.disturb(from: mound, then: callback)
         }
     }
 }
@@ -325,7 +396,9 @@ extension MinefieldController: MinefieldDelegate {
 }
 
 extension MinefieldController: MoundDelegate {
-    func moundMineStyle(_: Mound) -> Mound.MineStyle {mineStyle}
+    var mineStyle: Minefield.MineStyle {minefield.mineStyle}
+    
+    var fieldStyle: Minefield.FieldStyle {minefield.fieldStyle}
     
     func moundCanAct(_ mound: Mound) -> Bool {canAct}
     
@@ -350,16 +423,11 @@ extension MinefieldController: MoundDelegate {
             return succeed(by: mound)
         }
         
-        let index = minefield.moundMatrix.indexOf(mound)!
-        if index.row == minefield.difficulty.numberOfRows - 1 {
-            mound.bezelInsets.top = -0.5;
-        }
-        
         if mound.hint > 0 {
             return
         }
         
-        index.vicinities.forEach {vicinityIndex in
+        minefield.moundMatrix.indexOf(mound)!.vicinities.forEach {vicinityIndex in
             if let vicinityMound = minefield.moundMatrix[vicinityIndex],
                 !vicinityMound.hasMine,
                 vicinityMound.state == .covered(withFlag: .none) {
