@@ -465,7 +465,7 @@ extension Minefield: NSWindowDelegate {
         if fieldStyle == .sheet {
             layer!.mask = CALayer()
             if #available(OSX 10.16, *) {
-                layer!.mask!.cornerRadius = 8.75
+                layer!.mask!.cornerRadius = 8.5
                 layer!.mask!.cornerCurve = .continuous
             } else {
                 layer!.mask!.cornerRadius = 4

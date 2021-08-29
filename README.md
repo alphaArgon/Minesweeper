@@ -27,3 +27,6 @@ defaults write red.argon.minesweeper FieldStyle -int <0|1>
 where `0` is for a classic style and `1` for a flatter style.
 
 *Note*: `FieldStyle -int 1` may not work well on macOS High Sierra and below.
+
+## License
+All files in this repository are under the MIT license and you are supposed to include a copy of the license in your own distribution.

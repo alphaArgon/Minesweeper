@@ -57,7 +57,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSToolbarDelegate {
         }
         
         if #available(OSX 10.16, *), controller.minefield.fieldStyle == .solid {
-//            window.toolbarStyle = .expanded
+            window.toolbarStyle = .expanded
         }
         
         if controller.minefield.fieldStyle == .sheet {
